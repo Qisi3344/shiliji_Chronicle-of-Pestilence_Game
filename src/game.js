@@ -64,13 +64,29 @@ export const regionStats = (state, regionId) => {
   const court=state.factionActions||{}, strict=court.emperor?.status==='圣心震怒', relief=court.crown_prince?.status==='分区赈济';
   const extraMobility=(strict?-8:0)+(court.people?.status==='自发避疫'?-9:court.people?.status==='闻风迁徙'?5:0)+(relief&&['nan_he','chang_ping'].includes(regionId)?-12:0)+(court.gentry?.status==='闭庄逐客'&&['lin_he','qing_xi'].includes(regionId)?12:0);
   const extraGovernance=(relief&&['nan_he','chang_ping'].includes(regionId)?10:0)+(court.chancellor?.status==='保全漕运'&&['chang_ping','xi_du','nan_du'].includes(regionId)?10:0);
-  return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance) };
+  const local=state.outbreaks?.filter(o=>o.regionId===regionId)||[];
+  let plagueMobility=0, plagueOrder=0, plagueGovernance=0;
+  for(const o of local){
+    if(o.diseaseId==='livestock_plague'){
+      if(hasDiseaseSkill(state,o.diseaseId,'livestock_draft_3')&&o.infected>=180){plagueMobility-=8;plagueGovernance-=4;}
+      if(hasDiseaseSkill(state,o.diseaseId,'livestock_herd_2')&&o.infected>=140) plagueOrder-=6;
+      if(hasDiseaseSkill(state,o.diseaseId,'livestock_herd_3')&&r.disaster>=60){plagueOrder-=5;plagueGovernance-=4;}
+    }
+    if(o.diseaseId==='avian_plague'&&hasDiseaseSkill(state,o.diseaseId,'avian_yard_3')&&o.localAwareness>=40){plagueMobility+=5;plagueOrder-=4;}
+    if(o.diseaseId==='blood_plague'&&hasDiseaseSkill(state,o.diseaseId,'blood_frenzy_3')&&o.localAwareness>=50) plagueOrder-=5;
+    if(o.diseaseId==='corpse_plague'&&hasDiseaseSkill(state,o.diseaseId,'corpse_pile_2')&&o.infected>=300){plagueOrder-=9;plagueGovernance-=7;}
+  }
+  return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility+plagueMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)+plagueOrder), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance+plagueGovernance) };
 };
 export function newGame(name='长夜') {
   return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
 }
 export function canDrop(state, regionId, diseaseId) {
-  if (!byId(regionId) || !disease(diseaseId)) return '请选择疫病与地区';
+  const d=disease(diseaseId);
+  if (!byId(regionId) || !d) return '请选择疫病与地区';
+  if (state.drops===0 && !d.starter) return '初临只能从四种常疫中择一';
+  if ((d.unlockScar||0)>state.scar) return `疫痕达到 ${d.unlockScar} 后，${d.name}方会显现`;
+  if (d.id==='corpse_plague' && !state.outbreaks.some(o=>o.infected>=500)) return '尸疫需在一处重疫之地（病者估计 500+）方可苏醒';
   if (state.drops>=4) return '一世最多降下四处疫源';
   if (state.drops>=dropLimit(state.scar)) return `疫痕达到${[0,20,45,75][state.drops]}后方可再降疫`;
   const cost=dropCost(state) + (state.outbreaks.some(o=>o.diseaseId===diseaseId) ? Math.ceil(dropCost(state)*.25) : 0);
@@ -178,6 +194,31 @@ export function advanceTurn(state) {
       if(has('red_scar_1')) awarenessRelief=.35;
       if(has('red_scar_2')&&o.localAwareness>=40) spreadSkill*=1.18;
       if(has('red_scar_3')&&o.localAwareness>=60){spreadSkill*=1.15;governanceRelief=Math.max(governanceRelief,.25);}
+    } else if(d.id==='livestock_plague'){
+      const farm=r.tags?.some(t=>['农田','粮仓'].includes(t))||r.type==='granary';
+      if(has('livestock_draft_1')&&(farm||r.type==='military')) growthSkill*=1.2;
+      if(has('livestock_draft_2')&&r.type==='military') spreadSkill*=1.2;
+      if(has('livestock_herd_1')&&(farm||r.population>=40)) growthSkill*=1.16;
+      if(has('livestock_herd_3')&&r.disaster>=60) growthSkill*=1.18;
+    } else if(d.id==='avian_plague'){
+      const yard=r.tags?.some(t=>['农田','市集','河网'].includes(t));
+      if(has('avian_yard_1')&&(yard||r.population>=45)) growthSkill*=1.18;
+      if(has('avian_yard_2')&&r.mobility>=65) roadSkill*=1.2;
+      if(has('avian_yard_3')&&o.localAwareness>=40) spreadSkill*=1.12;
+      if(has('avian_wing_2')&&(r.type==='port'||r.tags?.includes('河网'))) waterSkill*=1.2;
+    } else if(d.id==='blood_plague'){
+      if(has('blood_covenant_1')&&(r.type==='capital'||r.governance>=60)){visibilitySkill*=.8;growthSkill*=1.1;}
+      if(has('blood_covenant_2')&&active.some(e=>['politics','society'].includes(e.category))) eventSkill*=1.2;
+      if(has('blood_covenant_3')&&hidden){growthSkill*=1.18;spreadSkill*=1.12;}
+      if(has('blood_frenzy_1')&&(r.type==='military'||active.some(e=>e.category==='military'))) growthSkill*=1.2;
+      if(has('blood_frenzy_2')&&o.stance==='surge') spreadSkill*=1.22;
+      if(has('blood_frenzy_3')&&o.localAwareness>=50){growthSkill*=1.14;awarenessRelief=.2;}
+    } else if(d.id==='corpse_plague'){
+      if(has('corpse_pile_1')&&(o.infected>=500||o.localAwareness>=60)) growthSkill*=1.22;
+      if(has('corpse_pile_3')&&o.stance==='surge'){growthSkill*=1.2;spreadSkill*=1.2;}
+      if(has('corpse_grave_1')&&r.type==='military') growthSkill*=1.2;
+      if(has('corpse_grave_2')&&r.disaster>=60) spreadSkill*=1.2;
+      if(has('corpse_grave_3')&&o.localAwareness>=60) awarenessRelief=.35;
     }
     const stanceGrowth={dormant:.8,spread:1,surge:1.4}[o.stance];
     const environment=d.id==='water_woe'? .55+r.disaster/100*d.environment : d.id==='black_blight' ? .7+r.population/100 : 1;
@@ -197,6 +238,26 @@ export function advanceTurn(state) {
       const routeSkill=routeType==='water'?waterSkill:roadSkill;
       const chance=Math.min(.88,(.08+Math.min(.48,o.infected/90))*d.spread*flow*weight*stance*gathering*armyBrake*spreadSkill*routeSkill*(borrowed?1.4:1));
       if (hash(`${state.turn}|${o.id}|${targetId}`)<chance) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null});
+    }
+    if (d.id==='avian_plague' && hasDiseaseSkill(state,d.id,'avian_wing_1')) {
+      const adjacent=new Set(neighbors.map(([id])=>id));
+      const secondHop=new Set();
+      for(const firstId of adjacent){
+        for(const edge of [...roads,...waterways]){
+          if(!edge.includes(firstId)) continue;
+          const candidate=edge.find(id=>id!==firstId);
+          if(candidate!==r.id&&!adjacent.has(candidate)) secondHop.add(candidate);
+        }
+      }
+      for(const targetId of secondHop){
+        if(state.outbreaks.some(x=>x.regionId===targetId&&x.diseaseId===o.diseaseId)||incoming.some(x=>x.regionId===targetId&&x.diseaseId===o.diseaseId)) continue;
+        const target=regionStats(state,targetId);
+        let leap=.035*d.spread*((r.mobility+target.mobility)/200);
+        if(hasDiseaseSkill(state,d.id,'avian_wing_2')&&(r.type==='port'||target.type==='port'||r.tags?.includes('河网')||target.tags?.includes('河网'))) leap*=1.8;
+        if(hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=1.65;
+        if(state.alert>=40&&!hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=.7;
+        if(hash(`bird|${state.turn}|${o.id}|${targetId}`)<Math.min(.28,leap)) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null,longJump:true});
+      }
     }
   }
   for (const o of incoming) {

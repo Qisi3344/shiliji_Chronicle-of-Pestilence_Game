@@ -1,6 +1,6 @@
 import './style.css';
-import { diseases, events, factions, regions, roads, waterways } from './data.js';
-import { SAVE_KEY, activeEvents, advanceTurn, alertName, borrowEvent, canDrop, changeStance, dropCost, dropDisease, dropLimit, hideDisease, loadGame, newGame, periodName, regionOutbreaks, regionStats, saveGame, stageName } from './game.js';
+import { diseaseSkills, diseases, events, factions, regions, roads, waterways } from './data.js';
+import { SAVE_KEY, activeEvents, advanceTurn, alertName, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, diseaseProgress, dropCost, dropDisease, dropLimit, hideDisease, loadGame, newGame, periodName, regionOutbreaks, regionStats, saveGame, stageName, unlockDiseaseSkill } from './game.js';
 
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -52,7 +52,35 @@ function detail(){const r=one(regions,stateUI.selected);
  return `<aside class="detail-panel ${stateUI.detailOpen?'open':''}"><div class="detail-handle" data-action="close-detail"></div><div class="detail-scroll"><div class="detail-top"><div><span class="eyebrow">${esc(r.province)} / ${typeLabel[r.type]}</span><h2>${r.name}</h2></div><button class="plain detail-close" data-action="close-detail" aria-label="关闭地区详情">×</button></div><div class="detail-tags">${r.tags.map(t=>pill(t)).join('')}</div><div class="stat-grid"><div><span>人口</span><strong>${r.population}万</strong></div><div><span>流动</span><strong>${s.mobility} <small>${s.mobility>=70?'高':s.mobility>=40?'中':'低'}</small></strong></div><div><span>秩序</span><strong>${s.order}</strong></div><div><span>灾患</span><strong>${s.disaster} <small>${s.disaster>=75?'极高':s.disaster>=50?'高':''}</small></strong></div></div><div class="detail-section"><div class="subhead"><h3>此地疫况</h3><span>${outbreaks.length} 种活跃</span></div>${outbreaks.length?outbreaks.map(outbreakCard).join(''):'<p class="muted">此地尚无疫踪。</p>'}</div><div class="detail-section"><div class="subhead"><h3>降疫</h3><span>${game.drops===0?'首次免费':`已降 ${game.drops}/${dropLimit(game.scar)}`}</span></div><div class="drop-row"><select id="drop-disease" aria-label="选择降临疫病">${diseases.map(d=>`<option value="${d.id}" ${d.id===selectedDisease?'selected':''}>${d.name}</option>`).join('')}</select><button class="primary" data-action="drop" ${mayDrop&&!dropError?'':'disabled'}>降于此地${game.drops?` · ${dropCost(game) + (game.outbreaks.some(o=>o.diseaseId===selectedDisease) ? Math.ceil(dropCost(game)*.25) : 0)}`:''}</button></div>${dropError?`<p class="action-note">${esc(dropError)}</p>`:`<p class="action-note">${esc(one(diseases,selectedDisease).line)}</p>`}</div><div class="detail-section"><div class="subhead"><h3>当前大事</h3><span>${eventList.length} 件</span></div>${eventList.length?eventList.map(e=>`<div class="local-event"><b>${e.title}</b><p>${e.text}</p><small>${e.effect}</small></div>`).join(''):'<p class="muted">本旬无大事。</p>'}</div></div>${game.drops>0?`<div class="sheet-turn">${button('advance','推演下一旬 →','primary wide')}</div>`:''}</aside>`;
 }
 function world(){return `<div class="world-layout">${mapPanel()}${detail()}</div>${game.drops>0?`<div class="turn-dock">${button('advance','推演下一旬 →','primary turn-button')}</div>`:''}`;}
-function codex(){return `<div class="content-page"><div class="content-heading"><span class="eyebrow">疫册 / FOUR FORMS</span><h2>疫并无定形。</h2><p>你是疫。寒疫、黑疽、水殇与赤疮，只是你在人世留下的四种路径。</p></div><div class="codex-grid">${diseases.map(d=>{const matching=game.outbreaks.filter(o=>o.diseaseId===d.id),unique=new Set(matching.map(o=>o.regionId)).size;return `<article class="codex-card"><div class="codex-card-head"><span class="glyph-small">${d.name[0]}</span><div><span class="eyebrow">已知疫病</span><h3>${d.name}</h3></div></div><p class="verse">${d.line}</p><p>${d.desc}</p><div class="codex-metrics"><span>疫区 <strong>${unique}</strong></span><span>病者 <strong>${number(matching.reduce((n,o)=>n+o.infected,0))}</strong></span></div><div class="tag-row">${d.tags.map(t=>pill(t)).join('')}</div>${matching.length?`<div class="codex-locations">${matching.map(o=>`<button data-action="jump-region" data-id="${o.regionId}">${one(regions,o.regionId).name} ↗</button>`).join('')}</div>`:''}</article>`}).join('')}</div><div class="unlock-strip"><strong>再降疫</strong><span>疫痕 20 / 45 / 75 分别解锁第二、三、四处独立疫源。</span></div></div>`;}
+function codex(){
+ const trees=diseases.map((d,index)=>{
+   const matching=game.outbreaks.filter(o=>o.diseaseId===d.id), unique=new Set(matching.map(o=>o.regionId)).size, progress=diseaseProgress(game,d.id), tree=diseaseSkills[d.id];
+   const xpPct=Math.min(100,Math.round(progress.xp/12*100));
+   const branchMarkup=tree.branches.map(branch=>{
+     const chosen=progress.branch===branch.id, excluded=progress.branch&&progress.branch!==branch.id;
+     return `<section class="skill-branch ${chosen?'chosen':''} ${excluded?'excluded':''}">
+       <div class="skill-branch-head"><div><span class="eyebrow">${chosen?'已择疫路':'疫路'}</span><h4>${branch.name}</h4></div><span class="branch-mark">${branch.name[0]}</span></div>
+       <p class="branch-line">${branch.line}</p>
+       <div class="skill-nodes">${branch.nodes.map(node=>{
+         const unlocked=progress.skills.includes(node.id), reason=canUnlockDiseaseSkill(game,d.id,node.id), available=!reason;
+         return `<div class="skill-node ${unlocked?'unlocked':available?'available':excluded?'excluded':'waiting'}">
+           <div class="skill-tier">第${node.tier}阶 <span>疫历 ${node.xp}</span></div>
+           <div class="skill-copy"><strong>${node.name}</strong><p>${node.desc}</p></div>
+           ${unlocked?'<span class="skill-state">已生此性</span>':available?`<button class="skill-unlock" data-action="unlock-skill" data-id="${node.id}" data-value="${d.id}">择此疫性</button>`:`<span class="skill-lock">${reason}</span>`}
+         </div>`;
+       }).join('')}</div>
+     </section>`;
+   }).join('');
+   return `<article class="evolution-card disease-tone-${index}">
+     <header class="evolution-hero"><div class="evo-glyph">${d.name[0]}</div><div class="evo-title"><span class="eyebrow">疫册 · ${String(index+1).padStart(2,'0')}</span><h3>${d.name}</h3><p class="verse">${d.line}</p></div><div class="evo-numbers"><span>疫区<strong>${unique}</strong></span><span>病者<strong>${number(matching.reduce((n,o)=>n+o.infected,0))}</strong></span></div></header>
+     <div class="evolution-progress"><div><span>疫历</span><strong>${progress.xp}</strong><small>经历扩散、借势与岁月而生变</small></div><div class="xp-track"><i style="width:${xpPct}%"></i><b>3</b><b>7</b><b>12</b></div></div>
+     <div class="tag-row evo-tags">${d.tags.map(t=>pill(t)).join('')}</div>
+     <div class="skill-branches">${branchMarkup}</div>
+     ${matching.length?`<div class="codex-locations"><span>现世疫踪</span>${matching.map(o=>`<button data-action="jump-region" data-id="${o.regionId}">${one(regions,o.regionId).name} ↗</button>`).join('')}</div>`:''}
+   </article>`;
+ }).join('');
+ return `<div class="content-page codex-page"><div class="content-heading codex-heading"><span class="eyebrow">疫册 / THE BOOK OF PESTILENCE</span><h2>疫会记住自己走过的人间。</h2><p>疫历不是货币。每一种疫在扩散、借势与存续中积累经历，并沿一条疫路生出新的行为。</p></div><div class="evolution-grid">${trees}</div><div class="unlock-strip"><strong>再降疫</strong><span>疫痕 20 / 45 / 75 解锁新的独立疫源；疫历只决定单种疫的成长。</span></div></div>`;
+}
 function news(){const categories=[['all','全部'],['politics','朝廷'],['disaster','灾异'],['population','流民'],['military','军事'],['society','民间'],['epidemic','疫报']];const items=game.log.filter(e=>stateUI.filter==='all'||e.category===stateUI.filter);
  return `<div class="content-page news-page"><div class="content-heading"><span class="eyebrow">诏闻 / IMPERIAL RECORD</span><h2>奏上来的，未必是真相。</h2><p>每条诏闻都留下了它对天下的真实影响。</p></div><div class="filter-row">${categories.map(([id,label])=>`<button data-filter="${id}" class="${stateUI.filter===id?'active':''}">${label}</button>`).join('')}</div><div class="timeline">${items.length?items.map((e,i)=>`<article class="news-item"><div class="time-mark">${periodName(e.turn)}</div><div class="news-body"><span class="eyebrow">${esc(e.regionIds.map(id=>one(regions,id)?.name).filter(Boolean).slice(0,2).join(' · ')||'天下')}</span><h3>${esc(e.title)}</h3><p>${esc(e.text)}</p><button class="impact-toggle" data-action="toggle-log" data-id="${i}">${stateUI.logOpen===i?'收起真实影响 −':'查看真实影响 ＋'}</button>${stateUI.logOpen===i?`<div class="impact"><span>疫所见</span> ${esc(e.effect)}</div>`:''}</div></article>`).join(''):'<p class="muted">此类诏闻尚无记录。</p>'}</div></div>`;}
 function court(){return `<div class="content-page"><div class="content-heading"><span class="eyebrow">靖朝 / THE SIX PILLARS</span><h2>腐朽的梁柱，仍在支撑天下。</h2><p>六方各有所求。每一旬，他们都会自行行动；你无法命令任何一方。</p></div><div class="court-grid">${factions.map(f=>{const a=game.factionActions[f.id];return `<article class="faction-card"><div class="faction-top"><span class="faction-glyph">${f.symbol}</span><div><span class="eyebrow">${f.name}</span><h3>${f.person}</h3></div>${pill(a.status)}</div><p class="action-copy">${a.action}</p><div class="faction-impact"><span>本旬影响</span><strong>${a.impact}</strong></div></article>`}).join('')}</div></div>`;}
@@ -101,6 +129,7 @@ app.addEventListener('click',e=>{
  else if(action==='stance'){const err=changeStance(game,id,value);err?toast(err):save();}
  else if(action==='hide'){const err=hideDisease(game,id);err?toast(err):save();}
  else if(action==='borrow'){const err=borrowEvent(game,id,document.querySelector(`[data-borrow-select="${id}"]`)?.value);err?toast(err):save();}
+ else if(action==='unlock-skill'){const err=unlockDiseaseSkill(game,value,id);if(err)toast(err);else{saveGame(game);toast(`${one(diseases,value)?.name||'此疫'}已有所变 · 已掌握新疫性`);}}
  else if(action==='advance'){advanceTurn(game);saveGame(game);stateUI.detailOpen=false;stateUI.modal='report';render();}
  else if(action==='close-modal'){stateUI.modal=null;if(game&&!game.completedTutorial){game.completedTutorial=true;saveGame(game);}render();}
  else if(action==='pause'){stateUI.modal='pause';render();}

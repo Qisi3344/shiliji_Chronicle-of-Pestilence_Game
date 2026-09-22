@@ -60,8 +60,8 @@ button:not(:disabled):active{transform:translateY(0)}
 .water{stroke:#638ea3;filter:drop-shadow(0 0 4px #355e70)}
 .map-node .node-ring{transition:r .15s ease,stroke .15s ease,filter .15s ease}
 .map-node:hover .node-ring,.map-node.selected .node-ring{filter:drop-shadow(0 0 7px #e2c48a80)}
-.map-node.infected .pulse{animation:plagueBreath 2.8s ease-in-out infinite;transform-origin:center}
-@keyframes plagueBreath{0%,100%{opacity:.28;transform:scale(.82)}50%{opacity:.72;transform:scale(1.14)}}
+.map-node.infected .pulse{opacity:.22;animation:plagueBreath 2.8s ease-in-out infinite;transform-origin:center;filter:none}
+@keyframes plagueBreath{0%,100%{opacity:.14;transform:scale(.9)}50%{opacity:.28;transform:scale(1.02)}}
 .map-node .event-mark{filter:drop-shadow(0 0 4px #d69a5280)}
 .hud-stats>div{background:linear-gradient(145deg,#2a2420,#211d1b);box-shadow:inset 0 1px #ffffff08}
 .detail-panel{background:

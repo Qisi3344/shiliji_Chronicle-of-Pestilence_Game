@@ -1,8 +1,12 @@
 export const diseases = [
-  { id:'cold_plague', name:'寒疫', line:'其来如秋风，病者尚能行。', desc:'症轻而隐，善借商旅、征兵与人群往来扩散。', tags:['潜行','人流','易扩散'], growth:1, spread:1.35, visibility:.65, environment:.8 },
-  { id:'black_blight', name:'黑疽', line:'一城尚未闻警，棺木已先不足。', desc:'爆发迅猛，善在人口密集、粮仓与军营中制造冲击。', tags:['爆发','城镇','高朝警'], growth:1.45, spread:.9, visibility:1.5, environment:1 },
-  { id:'water_woe', name:'水殇', line:'水养万人，也可送万人入土。', desc:'善借洪灾、脏乱水源、灾民聚集与河运蔓延。', tags:['环境','洪灾','河网'], growth:1.2, spread:1, visibility:1, environment:1.6 },
-  { id:'red_pox', name:'赤疮', line:'它写在人的脸上，谁也无法装作没看见。', desc:'病征显眼，善侵入家庭、宫廷、军营等长期共居群体。', tags:['显症','封闭群体','社会记忆'], growth:1.1, spread:.85, visibility:1.35, environment:1.1 },
+  { id:'cold_plague', name:'寒疫', glyph:'寒', starter:true, unlockScar:0, line:'其来如秋风，病者尚能行。', desc:'症轻而隐，善借商旅、征兵与人群往来扩散。', tags:['潜行','人流','易扩散'], growth:1, spread:1.35, visibility:.65, environment:.8 },
+  { id:'black_blight', name:'黑疽', glyph:'疽', starter:true, unlockScar:0, line:'一城尚未闻警，棺木已先不足。', desc:'爆发迅猛，善在人口密集、粮仓与军营中制造冲击。', tags:['爆发','城镇','高朝警'], growth:1.45, spread:.9, visibility:1.5, environment:1 },
+  { id:'water_woe', name:'水殇', glyph:'水', starter:true, unlockScar:0, line:'水养万人，也可送万人入土。', desc:'善借洪灾、脏乱水源、灾民聚集与河运蔓延。', tags:['环境','洪灾','河网'], growth:1.2, spread:1, visibility:1, environment:1.6 },
+  { id:'red_pox', name:'赤疮', glyph:'疮', starter:true, unlockScar:0, line:'它写在人的脸上，谁也无法装作没看见。', desc:'病征显眼，善侵入家庭、宫廷、军营等长期共居群体。', tags:['显症','封闭群体','社会记忆'], growth:1.1, spread:.85, visibility:1.35, environment:1.1 },
+  { id:'livestock_plague', name:'牲疫', glyph:'牲', starter:false, unlockScar:20, line:'人尚未病，牛马先倒在辕下。', desc:'侵入牛马猪羊与役畜，先撕裂耕作、运输、军需和肉食供应，再把饥荒与混乱还给人间。', tags:['牲畜','农田','军需'], growth:1.12, spread:1.05, visibility:.9, environment:1.25 },
+  { id:'avian_plague', name:'禽疫', glyph:'禽', starter:false, unlockScar:20, line:'城门可以关，天上的路关不住。', desc:'既能借鸡鸭鹅等家禽在村市间蔓延，也能随候鸟、水域与飞禽越过道路封锁，进行远距离跳跃。', tags:['飞禽','家禽','远跃'], growth:1.05, spread:1.22, visibility:.78, environment:1.2 },
+  { id:'blood_plague', name:'血疫', glyph:'血', starter:false, unlockScar:45, line:'伤口只是门，渴望才是它真正的路。', desc:'依附血液、伤口、战争与祭祀，使活人逐渐被嗜血、暴力与秘密供血关系扭曲。', tags:['伤口','战争','异疫'], growth:1.18, spread:.98, visibility:1.1, environment:1.05 },
+  { id:'corpse_plague', name:'尸疫', glyph:'尸', starter:false, unlockScar:75, special:true, line:'人死之后，疫仍不肯停。', desc:'特殊灾厄。尸体、战场与乱葬之地成为新的疫源；死亡不再结束传播，而会继续制造秩序崩坏。', tags:['尸体','战场','特殊灾厄'], growth:1.34, spread:1.08, visibility:1.55, environment:1.35 },
 ];
 
 export const diseaseSkills = {
@@ -63,6 +67,66 @@ export const diseaseSkills = {
         {id:'red_scar_1',tier:1,xp:3,name:'见疮不忘',desc:'地方察觉带来的控制压制减弱。'},
         {id:'red_scar_2',tier:2,xp:7,name:'逐户相避',desc:'高察觉时仍保有更强外溢能力。'},
         {id:'red_scar_3',tier:3,xp:12,name:'满城留痕',desc:'严密防控下仍能维持传播，并强化盛发收益。'}
+      ]}
+    ]
+  },
+  livestock_plague:{
+    title:'牲疫 · 疫路',
+    branches:[
+      {id:'draft',name:'断辕',line:'先让牛马倒下，再让王朝的车轮停下。',nodes:[
+        {id:'livestock_draft_1',tier:1,xp:3,name:'蹄下生疠',desc:'农田、军镇和粮运节点中的增长提高。'},
+        {id:'livestock_draft_2',tier:2,xp:7,name:'无马可征',desc:'军镇与官道传播增强，役畜损失开始拖慢流动。'},
+        {id:'livestock_draft_3',tier:3,xp:12,name:'车辙尽停',desc:'重疫地区的流动与治理下降，军需和运输受到持续冲击。'}
+      ]},
+      {id:'herd',name:'绝栏',line:'栏舍空了，粮价和人心会替它继续发病。',nodes:[
+        {id:'livestock_herd_1',tier:1,xp:3,name:'同栏皆病',desc:'农田与人口稠密地区更容易快速累积牲疫。'},
+        {id:'livestock_herd_2',tier:2,xp:7,name:'肉市断供',desc:'牲疫严重时地方秩序下降。'},
+        {id:'livestock_herd_3',tier:3,xp:12,name:'牲死粮贵',desc:'高灾患地区的牲疫会进一步削弱秩序与治理。'}
+      ]}
+    ]
+  },
+  avian_plague:{
+    title:'禽疫 · 疫路',
+    branches:[
+      {id:'wing',name:'飞羽',line:'官道有尽，天空没有。',nodes:[
+        {id:'avian_wing_1',tier:1,xp:3,name:'越墙',desc:'获得低概率跨越一个中间节点的远跃传播。'},
+        {id:'avian_wing_2',tier:2,xp:7,name:'候鸟',desc:'港口、水路与高流动地区的远跃概率提高。'},
+        {id:'avian_wing_3',tier:3,xp:12,name:'天路无关',desc:'远跃不再明显受军镇封控影响，并能跳得更稳定。'}
+      ]},
+      {id:'yard',name:'禽市',line:'鸡鸭鹅不飞远，却日日在人手与笼舍间往返。',nodes:[
+        {id:'avian_yard_1',tier:1,xp:3,name:'鸡舍同栖',desc:'农田、集市与人口稠密地区的本地增长提高。'},
+        {id:'avian_yard_2',tier:2,xp:7,name:'活禽入市',desc:'高流动地区的道路传播增强。'},
+        {id:'avian_yard_3',tier:3,xp:12,name:'扑杀令',desc:'地方察觉升高后，扑杀与赶集反而造成秩序下降和额外流动。'}
+      ]}
+    ]
+  },
+  blood_plague:{
+    title:'血疫 · 疫路',
+    branches:[
+      {id:'covenant',name:'血契',line:'最隐秘的血路，往往藏在高墙与誓言之后。',nodes:[
+        {id:'blood_covenant_1',tier:1,xp:3,name:'暗供',desc:'京畿与治理较高地区中更易潜伏。'},
+        {id:'blood_covenant_2',tier:2,xp:7,name:'秘宴',desc:'借朝廷、宴饮与豪强事件时增长提高。'},
+        {id:'blood_covenant_3',tier:3,xp:12,name:'以血续夜',desc:'藏疫状态下增长与传播仍保持较高水平。'}
+      ]},
+      {id:'frenzy',name:'血狂',line:'战争给它伤口，恐惧给它牙齿。',nodes:[
+        {id:'blood_frenzy_1',tier:1,xp:3,name:'见血',desc:'军镇与军事事件中的增长提高。'},
+        {id:'blood_frenzy_2',tier:2,xp:7,name:'夜袭',desc:'盛发时对外传播增强。'},
+        {id:'blood_frenzy_3',tier:3,xp:12,name:'血满长街',desc:'高察觉下仍能保持爆发，并额外制造秩序压力。'}
+      ]}
+    ]
+  },
+  corpse_plague:{
+    title:'尸疫 · 灾厄',
+    branches:[
+      {id:'pile',name:'尸积',line:'死者越多，活人的城越像一座未封的墓。',nodes:[
+        {id:'corpse_pile_1',tier:1,xp:3,name:'棺木不足',desc:'病者众多、地方高察觉时增长提高。'},
+        {id:'corpse_pile_2',tier:2,xp:7,name:'停尸成巷',desc:'重疫地区的秩序与治理受到额外压制。'},
+        {id:'corpse_pile_3',tier:3,xp:12,name:'死地生疫',desc:'盛发时获得更强增长，并更容易沿人口逃亡外溢。'}
+      ]},
+      {id:'grave',name:'墓路',line:'战场、墓地与乱葬之处，都是它新的起点。',nodes:[
+        {id:'corpse_grave_1',tier:1,xp:3,name:'战骨',desc:'军镇与战争相关地区增长提高。'},
+        {id:'corpse_grave_2',tier:2,xp:7,name:'乱葬',desc:'高灾患地区传播增强。'},
+        {id:'corpse_grave_3',tier:3,xp:12,name:'死者不止',desc:'严重尸疫可削弱封控对传播的压制。'}
       ]}
     ]
   }

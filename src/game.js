@@ -10,6 +10,12 @@ const ensureEvolution = state => {
   state.diseaseBranches ||= {};
   return state;
 };
+const ensureClock = state => {
+  if (!Number.isInteger(state.dayInTurn)) state.dayInTurn=0;
+  if (![1,2,4].includes(state.timeSpeed)) state.timeSpeed=1;
+  if (typeof state.paused!=='boolean') state.paused=false;
+  return state;
+};
 export const hasDiseaseSkill = (state,diseaseId,skillId) => (ensureEvolution(state).diseaseSkills[diseaseId]||[]).includes(skillId);
 export const diseaseProgress = (state,diseaseId) => {
   ensureEvolution(state);
@@ -53,6 +59,11 @@ export const periodName = turn => {
   const m=7+Math.floor((turn+2)/3), year=23+Math.floor(m/12), month=m%12+1;
   return `景和${year}年 · ${month}月${['上旬','中旬','下旬'][(turn+2)%3]}`;
 };
+export const dateName = (turn,dayInTurn=0) => {
+  const m=7+Math.floor((turn+2)/3), year=23+Math.floor(m/12), month=m%12+1;
+  const day=((turn+2)%3)*10+1+Math.max(0,Math.min(9,dayInTurn));
+  return `景和${year}年 · ${month}月${day}日`;
+};
 export const stageName = scar => scar>=110?'乱世':scar>=75?'蚀国':scar>=45?'大疫':scar>=20?'成势':'初临';
 export const alertName = alert => alert>=80?'国难':alert>=60?'严防':alert>=40?'戒备':alert>=20?'察觉':'无知';
 export const dropLimit = scar => scar>=75?4:scar>=45?3:scar>=20?2:1;
@@ -79,7 +90,7 @@ export const regionStats = (state, regionId) => {
   return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility+plagueMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)+plagueOrder), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance+plagueGovernance) };
 };
 export function newGame(name='长夜') {
-  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
+  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
 }
 export function canDrop(state, regionId, diseaseId) {
   const d=disease(diseaseId);
@@ -288,7 +299,19 @@ export function advanceTurn(state) {
   state.log=state.log.slice(0,120);
   return state.lastReport;
 }
+export function advanceDay(state) {
+  ensureClock(state);
+  state.dayInTurn++;
+  if (state.dayInTurn<10) return null;
+  state.dayInTurn=0;
+  return advanceTurn(state);
+}
+export function setTimeSpeed(state,speed) {
+  ensureClock(state);
+  if (Number(speed)===0) { state.paused=true; return; }
+  if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
+}
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

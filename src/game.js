@@ -7,7 +7,7 @@ const disease = id => diseases.find(d => d.id === id);
 const hash = value => { let h=2166136261; for (const c of value) h=Math.imul(h ^ c.charCodeAt(0),16777619); return (h >>> 0) / 4294967295; };
 export const periodName = turn => {
   const m=7+Math.floor((turn+2)/3), year=23+Math.floor(m/12), month=m%12+1;
-  return `承熙${year}年 · ${month}月${['上旬','中旬','下旬'][(turn+2)%3]}`;
+  return `景和${year}年 · ${month}月${['上旬','中旬','下旬'][(turn+2)%3]}`;
 };
 export const stageName = scar => scar>=110?'乱世':scar>=75?'蚀国':scar>=45?'大疫':scar>=20?'成势':'初临';
 export const alertName = alert => alert>=80?'国难':alert>=60?'严防':alert>=40?'戒备':alert>=20?'察觉':'无知';
@@ -82,10 +82,10 @@ function factionTurn(state) {
   const alert=state.alert, sick=state.outbreaks.length, capital=regionOutbreaks(state,'jing').length>0;
   const actions={
     emperor: capital||alert>=60 ? ['圣心震怒','下诏严查京畿，命诸州禁行。','朝警 +2；外流受阻'] : ['粉饰太平','命地方复核疫报，勿惊动京师。','朝警 -1；地方应对延缓'],
-    chancellor: alert>=45 ? ['保全漕运','裴阙优先调医守住粮运要道。','粮运节点治理提高'] : ['压住奏折','裴阙将地方疫报留中不发。','朝警 -1；奏报失真'],
-    crown_prince: state.turn>=3 ? ['分区赈济','萧祈安命粥棚分区，灾民不再挤作一团。','南河治理改善，人群流动下降'] : ['请开常平仓','萧祈安上疏请赈，等待圣裁。','尚未形成政策'],
-    army: alert>=40 ? ['封营查验','霍沉岳令北军分营驻扎，禁止擅离。','军镇对外传播减弱'] : ['照常征发','霍沉岳仍按旧例调兵换防。','北境人口流动持续'],
-    gentry: sick>=4 ? ['闭庄逐客','临河崔氏关庄，佃户沿官道散去。','庄内收紧，周边流动上升'] : ['囤粮待价','临河崔氏收粮闭库。','地方秩序缓慢下降'],
+    chancellor: alert>=45 ? ['保全漕运','裴桢优先调医守住粮运要道。','粮运节点治理提高'] : ['压住奏折','裴桢将地方疫报留中不发。','朝警 -1；奏报失真'],
+    crown_prince: state.turn>=3 ? ['分区赈济','景聿修命粥棚分区，灾民不再挤作一团。','洛南治理改善，人群流动下降'] : ['请开常平仓','景聿修上疏请赈，等待圣裁。','尚未形成政策'],
+    army: alert>=40 ? ['封营查验','霍云令镇朔军分营驻扎，禁止擅离。','军镇对外传播减弱'] : ['照常征发','霍云仍按旧例调动镇朔军换防。','朔北人口流动持续'],
+    gentry: sick>=4 ? ['闭庄逐客','崔氏关庄，佃户沿官道散去。','庄内收紧，周边流动上升'] : ['囤粮待价','崔氏收粮闭库。','地方秩序缓慢下降'],
     people: alert>=40 ? ['自发避疫','村社拒外人入内，市集渐稀。','人口流动下降'] : ['闻风迁徙','百姓携家投亲，流民沿官道行走。','道路传播机会增加']
   };
   state.factionActions=Object.fromEntries(Object.entries(actions).map(([id,[status,action,impact]])=>[id,{status,action,impact}]));

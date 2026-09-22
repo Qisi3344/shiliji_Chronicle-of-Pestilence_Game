@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { events } from '../src/data.js';
-import { advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, newGame, periodName, unlockDiseaseSkill } from '../src/game.js';
+import { advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, newGame, periodName, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
 
 const game=newGame('长夜');
 assert.equal(periodName(0),'景和23年 · 8月下旬');
@@ -68,3 +68,15 @@ unlocks.scar=45;unlocks.power=30;
 assert.equal(canDrop(unlocks,'jing','blood_plague'),'');
 unlocks.scar=75;
 assert.ok(canDrop(unlocks,'jing','corpse_plague').includes('500+'));
+
+const clock=newGame('流时测试');
+assert.equal(dateName(0,0),'景和23年 · 8月21日');
+assert.equal(dateName(0,9),'景和23年 · 8月30日');
+assert.equal(advanceDay(clock),null);
+assert.equal(clock.dayInTurn,1);
+for(let i=0;i<9;i++) advanceDay(clock);
+assert.equal(clock.turn,1);
+assert.equal(clock.dayInTurn,0);
+assert.equal(dateName(clock.turn,clock.dayInTurn),'景和23年 · 9月1日');
+setTimeSpeed(clock,4);assert.equal(clock.timeSpeed,4);assert.equal(clock.paused,false);
+setTimeSpeed(clock,0);assert.equal(clock.paused,true);

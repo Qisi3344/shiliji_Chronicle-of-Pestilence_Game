@@ -56,3 +56,15 @@ assert.equal(unlockDiseaseSkill(evolution,'cold_plague','cold_roads_1'),'');
 assert.equal(hasDiseaseSkill(evolution,'cold_plague','cold_roads_1'),true);
 assert.equal(diseaseProgress(evolution,'cold_plague').branch,'roads');
 assert.ok(canUnlockDiseaseSkill(evolution,'cold_plague','cold_silent_1').includes('另一条疫路'));
+
+const unlocks=newGame('异疫测试');
+assert.equal(canDrop(unlocks,'he_dong','livestock_plague'),'初临只能从四种常疫中择一');
+assert.equal(dropDisease(unlocks,'he_dong','cold_plague'),'');
+unlocks.scar=20;unlocks.power=12;
+assert.equal(canDrop(unlocks,'nan_he','avian_plague'),'');
+assert.equal(dropDisease(unlocks,'nan_he','avian_plague'),'');
+assert.equal(diseaseProgress(unlocks,'avian_plague').xp,1);
+unlocks.scar=45;unlocks.power=30;
+assert.equal(canDrop(unlocks,'jing','blood_plague'),'');
+unlocks.scar=75;
+assert.ok(canDrop(unlocks,'jing','corpse_plague').includes('500+'));

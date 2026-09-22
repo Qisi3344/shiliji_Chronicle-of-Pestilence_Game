@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { events } from '../src/data.js';
-import { advanceTurn, borrowEvent, canDrop, changeStance, dropDisease, dropLimit, hideDisease, newGame, periodName } from '../src/game.js';
+import { advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, newGame, periodName, unlockDiseaseSkill } from '../src/game.js';
 
 const game=newGame('长夜');
 assert.equal(periodName(0),'景和23年 · 8月下旬');
@@ -43,3 +43,16 @@ actions.scar=20;actions.power=12;
 assert.equal(dropDisease(actions,'nan_he','water_woe'),'');
 assert.equal(actions.drops,2);
 console.log(`PASS: ${game.turn} turns, ${game.outbreaks.length} outbreaks, ${reported.size} dispatch titles, scar ${game.scar}`);
+
+
+const evolution=newGame('疫历测试');
+assert.equal(dropDisease(evolution,'he_dong','cold_plague'),'');
+assert.equal(diseaseProgress(evolution,'cold_plague').xp,1);
+advanceTurn(evolution);
+advanceTurn(evolution);
+assert.equal(diseaseProgress(evolution,'cold_plague').xp,3);
+assert.equal(canUnlockDiseaseSkill(evolution,'cold_plague','cold_roads_1'),'');
+assert.equal(unlockDiseaseSkill(evolution,'cold_plague','cold_roads_1'),'');
+assert.equal(hasDiseaseSkill(evolution,'cold_plague','cold_roads_1'),true);
+assert.equal(diseaseProgress(evolution,'cold_plague').branch,'roads');
+assert.ok(canUnlockDiseaseSkill(evolution,'cold_plague','cold_silent_1').includes('另一条疫路'));

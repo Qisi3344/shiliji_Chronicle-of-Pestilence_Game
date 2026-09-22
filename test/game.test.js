@@ -3,7 +3,7 @@ import { events } from '../src/data.js';
 import { advanceTurn, borrowEvent, canDrop, changeStance, dropDisease, dropLimit, hideDisease, newGame, periodName } from '../src/game.js';
 
 const game=newGame('长夜');
-assert.equal(periodName(0),'承熙23年 · 8月下旬');
+assert.equal(periodName(0),'景和23年 · 8月下旬');
 assert.equal(dropDisease(game,'he_dong','cold_plague'),'');
 assert.equal(game.power,0);
 assert.equal(game.outbreaks[0].infected,1);

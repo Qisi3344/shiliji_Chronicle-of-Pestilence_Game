@@ -200,7 +200,7 @@ export function advanceTurn(state) {
     }
   }
   for (const o of incoming) {
-    state.outbreaks.push(o); markRegion(state,o.regionId,notes); fresh.push(o); gainDiseaseXP(state,o.diseaseId,1);
+    state.outbreaks.push(o); markRegion(state,o.regionId,notes); fresh.push(o);
     notes.push(`${disease(o.diseaseId).name}沿路进入${byId(o.regionId).name}`);
   }
   const newEvents=events.filter(e=>e.turn===state.turn+1);

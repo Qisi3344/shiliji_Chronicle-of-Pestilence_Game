@@ -267,12 +267,14 @@ export function advanceTurn(state) {
         if(hasDiseaseSkill(state,d.id,'avian_wing_2')&&(r.type==='port'||target.type==='port'||r.tags?.includes('河网')||target.tags?.includes('河网'))) leap*=1.8;
         if(hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=1.65;
         if(state.alert>=40&&!hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=.7;
-        if(hash(`bird|${state.turn}|${o.id}|${targetId}`)<Math.min(.28,leap)) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null,longJump:true});
+        if(hash(`bird|${state.turn}|${o.id}|${targetId}`)<Math.min(.28,leap)) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null,longJump:true,__from:r.id});
       }
     }
   }
   for (const o of incoming) {
     state.outbreaks.push(o); markRegion(state,o.regionId,notes); fresh.push(o);
+    if(o.longJump&&o.diseaseId==='avian_plague'){(state.birdHops??=[]).push({turn:state.turn,from:o.__from,to:o.regionId});}
+    delete o.__from;
     notes.push(`${disease(o.diseaseId).name}沿路进入${byId(o.regionId).name}`);
   }
   const newEvents=events.filter(e=>e.turn===state.turn+1);
@@ -312,6 +314,6 @@ export function setTimeSpeed(state,speed) {
   if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

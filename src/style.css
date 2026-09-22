@@ -159,3 +159,15 @@ button:not(:disabled):active{transform:translateY(0)}
   .branch-line{min-height:0}
   .codex-locations{padding:0 17px 20px}
 }
+
+.future-plagues{margin-top:18px;padding:14px 16px;border:1px dashed #5d493b;color:#8f806f;font-size:.78rem;text-align:center;background:#1d191755}
+.future-plagues span{color:#c0a47e}
+.plague-locked{filter:saturate(.55)}
+.plague-locked .evolution-hero,.plague-locked .evolution-progress,.plague-locked .evo-tags{opacity:.62}
+.locked-pill{border-color:#655344!important;color:#9e8f7d!important;background:#211d1a!important}
+.plague-lock-panel{grid-column:1/-1;min-height:140px;display:grid;place-items:center;align-content:center;gap:8px;border:1px dashed #5c493d;background:#171514;color:#8d806f;text-align:center;padding:25px}
+.plague-lock-panel strong{font:600 1.2rem 'Noto Serif SC',serif;color:#bca78b}
+.plague-lock-panel span{font-size:.75rem}
+.special-plague{border-color:#6b3533;background:radial-gradient(circle at 90% 0,#7f24241f,transparent 35%),linear-gradient(145deg,#211918,#151313)}
+.special-plague .evo-glyph{border-color:#7f3c38;background:linear-gradient(145deg,#3c1f1d,#201817)}
+@media(max-width:1200px){.disease-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -1,11 +1,17 @@
-import './style.css';
 import { diseaseSkills, diseases, events, factions, regions, roads, waterways } from './data.js';
 import { SAVE_KEY, activeEvents, advanceDay, alertName, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropCost, dropDisease, dropLimit, hideDisease, loadGame, newGame, periodName, regionOutbreaks, regionStats, saveGame, setTimeSpeed, stageName, unlockDiseaseSkill } from './game.js';
 
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const one=(list,id)=>list.find(item=>item.id===id);
-const stateUI={route:location.pathname,returnRoute:'/',tab:'world',selected:null,detailOpen:false,modal:null,toast:'',filter:'all',prologue:0,map:{x:0,y:0,w:900,h:680},nameSuggestion:'长夜',activeOutbreak:null,dropChoice:null,logOpen:null,briefTurn:null};
+const knownRoutes=new Set(['/','/new','/name','/prologue','/disease-select','/game','/archive','/settings']);
+const routeFromLocation=()=>{
+ const hash=location.hash.replace(/^#/,'');
+ if(hash) return knownRoutes.has(hash)?hash:'/';
+ return knownRoutes.has(location.pathname)?location.pathname:'/';
+};
+const appBase=location.pathname.endsWith('/')?location.pathname:location.pathname.replace(/\/[^/]*$/,'/')||'/';
+const stateUI={route:routeFromLocation(),returnRoute:'/',tab:'world',selected:null,detailOpen:false,modal:null,toast:'',filter:'all',prologue:0,map:{x:0,y:0,w:900,h:680},nameSuggestion:'长夜',activeOutbreak:null,dropChoice:null,logOpen:null,briefTurn:null};
 const defaultMap=()=>window.innerWidth<768?{x:230,y:0,w:440,h:680}:{x:0,y:0,w:900,h:680};
 stateUI.map=defaultMap();
 let narrowMap=window.innerWidth<768;
@@ -23,7 +29,14 @@ const number=n=>Number(n||0).toLocaleString('zh-CN');
 const pill=(text,cls='')=>`<span class="pill ${cls}">${esc(text)}</span>`;
 const button=(action,label,cls='',extra='')=>`<button class="${cls}" data-action="${action}" ${extra}>${label}</button>`;
 const save=()=>{if(game)saveGame(game);render();};
-function go(route){history.pushState({},'',route);stateUI.route=route;stateUI.modal=null;window.scrollTo(0,0);render();}
+function go(route){
+ const next=knownRoutes.has(route)?route:'/';
+ history.pushState({},'',`${appBase}#${next}`);
+ stateUI.route=next;
+ stateUI.modal=null;
+ window.scrollTo(0,0);
+ render();
+}
 function toast(message){stateUI.toast=message;render();setTimeout(()=>{if(stateUI.toast===message){stateUI.toast='';document.querySelector('.toast')?.remove();}},3000);}
 function pageFrame(title,subtitle,body,back='/'){
  return `<div class="page-shell"><header class="page-top"><button class="plain back" data-route="${back}">← 返回</button><span class="brand-mini">时疠纪 <em>CHRONICLE</em></span></header><main class="page-content"><div class="section-heading"><span class="eyebrow">景和二十三年 / 靖朝</span><h1>${title}</h1>${subtitle?`<p>${subtitle}</p>`:''}</div>${body}</main></div>`;
@@ -163,7 +176,9 @@ setInterval(tickClock,250);
 app.addEventListener('keydown',e=>{const region=e.target.closest('[data-region]');if(region&&(e.key==='Enter'||e.key===' ')){e.preventDefault();stateUI.selected=region.dataset.region;stateUI.detailOpen=true;render();}});
 app.addEventListener('pointerdown',e=>{if(!e.target.closest('#map-stage')||e.target.closest('[data-region]'))return;pointer={x:e.clientX,y:e.clientY,box:{...stateUI.map}};});
 window.addEventListener('pointerup',e=>{if(!pointer)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.abs(dx)+Math.abs(dy)>8){const stage=document.querySelector('#map-stage');if(stage){const scale=pointer.box.w/stage.clientWidth;stateUI.map.x=Math.max(0,Math.min(900-stateUI.map.w,pointer.box.x-dx*scale));stateUI.map.y=Math.max(0,Math.min(680-stateUI.map.h,pointer.box.y-dy*scale));document.querySelector('.world-svg')?.setAttribute('viewBox',`${stateUI.map.x} ${stateUI.map.y} ${stateUI.map.w} ${stateUI.map.h}`);suppressClick=true;setTimeout(()=>suppressClick=false,100);}}pointer=null;});
-window.addEventListener('popstate',()=>{stateUI.route=location.pathname;stateUI.modal=null;render();});
+const syncRoute=()=>{stateUI.route=routeFromLocation();stateUI.modal=null;render();};
+window.addEventListener('popstate',syncRoute);
+window.addEventListener('hashchange',syncRoute);
 window.addEventListener('resize',()=>{const next=window.innerWidth<768;if(next!==narrowMap){narrowMap=next;stateUI.map=defaultMap();render();}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(stateUI.modal)stateUI.modal=null;else stateUI.detailOpen=false;render();}});
 render();

@@ -1,9 +1,53 @@
-import { diseases, events, factions, regions, roads, waterways } from './data.js';
+import { diseaseSkills, diseases, events, factions, regions, roads, waterways } from './data.js';
 
 export const SAVE_KEY = 'yi-save-v01';
 const clamp = (n, a=0, b=100) => Math.max(a, Math.min(b, n));
 const byId = id => regions.find(r => r.id === id);
 const disease = id => diseases.find(d => d.id === id);
+const ensureEvolution = state => {
+  state.diseaseXP ||= {};
+  state.diseaseSkills ||= {};
+  state.diseaseBranches ||= {};
+  return state;
+};
+export const hasDiseaseSkill = (state,diseaseId,skillId) => (ensureEvolution(state).diseaseSkills[diseaseId]||[]).includes(skillId);
+export const diseaseProgress = (state,diseaseId) => {
+  ensureEvolution(state);
+  return {xp:state.diseaseXP[diseaseId]||0,branch:state.diseaseBranches[diseaseId]||null,skills:[...(state.diseaseSkills[diseaseId]||[])]};
+};
+const skillNode = (diseaseId,skillId) => {
+  const tree=diseaseSkills[diseaseId];
+  for(const branch of tree?.branches||[]) {
+    const node=branch.nodes.find(n=>n.id===skillId);
+    if(node) return {branch,node};
+  }
+  return null;
+};
+export function canUnlockDiseaseSkill(state,diseaseId,skillId){
+  ensureEvolution(state);
+  const found=skillNode(diseaseId,skillId); if(!found) return '未找到此疫路';
+  const {branch,node}=found, progress=diseaseProgress(state,diseaseId);
+  if(progress.skills.includes(skillId)) return '此疫性已掌握';
+  if(progress.branch && progress.branch!==branch.id) return '此世此疫已择另一条疫路';
+  if(progress.xp<node.xp) return `疫历需达到 ${node.xp}`;
+  if(node.tier>1 && !branch.nodes.filter(n=>n.tier<node.tier).every(n=>progress.skills.includes(n.id))) return '需先掌握上一阶疫性';
+  return '';
+}
+export function unlockDiseaseSkill(state,diseaseId,skillId){
+  const error=canUnlockDiseaseSkill(state,diseaseId,skillId); if(error) return error;
+  ensureEvolution(state);
+  const {branch,node}=skillNode(diseaseId,skillId);
+  state.diseaseBranches[diseaseId] ||= branch.id;
+  state.diseaseSkills[diseaseId] ||= [];
+  state.diseaseSkills[diseaseId].push(node.id);
+  const d=disease(diseaseId);
+  state.log?.unshift({turn:state.turn,category:'epidemic',title:`${d.name} · ${node.name}`,text:`${d.name}在这一世里生出了新的疫性。`,effect:node.desc,regionIds:state.outbreaks.filter(o=>o.diseaseId===diseaseId).map(o=>o.regionId).slice(0,3)});
+  return '';
+}
+const gainDiseaseXP=(state,diseaseId,amount=1)=>{
+  ensureEvolution(state);
+  state.diseaseXP[diseaseId]=(state.diseaseXP[diseaseId]||0)+amount;
+};
 const hash = value => { let h=2166136261; for (const c of value) h=Math.imul(h ^ c.charCodeAt(0),16777619); return (h >>> 0) / 4294967295; };
 export const periodName = turn => {
   const m=7+Math.floor((turn+2)/3), year=23+Math.floor(m/12), month=m%12+1;
@@ -23,7 +67,7 @@ export const regionStats = (state, regionId) => {
   return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance) };
 };
 export function newGame(name='长夜') {
-  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
+  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
 }
 export function canDrop(state, regionId, diseaseId) {
   if (!byId(regionId) || !disease(diseaseId)) return '请选择疫病与地区';
@@ -49,6 +93,7 @@ export function dropDisease(state, regionId, diseaseId) {
   const cost=dropCost(state) + (state.outbreaks.some(o=>o.diseaseId===diseaseId) ? Math.ceil(dropCost(state)*.25) : 0);
   state.power-=cost; state.drops++;
   state.outbreaks.push({id:`${regionId}-${diseaseId}`,regionId,diseaseId,infected:1,stance:'dormant',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null});
+  gainDiseaseXP(state,diseaseId,1);
   const notes=[]; markRegion(state,regionId,notes);
   const r=byId(regionId), d=disease(diseaseId);
   state.log.unshift({turn:state.turn,category:'epidemic',title:`${d.name}降于${r.name}`,text:`${r.name} · 病者 1。${d.line}`,effect:cost?`疫势 -${cost}`:'首次降疫免费',regionIds:[regionId]});
@@ -75,7 +120,7 @@ export function borrowEvent(state, outbreakId, eventId) {
   if (!o || !e) return '此地没有可借之势';
   if (o.borrowedTurn===state.turn) return '本旬已借势';
   if (state.power<e.cost) return `疫势不足，需 ${e.cost}`;
-  state.power-=e.cost; o.borrowedTurn=state.turn; o.borrowedEventId=e.id;
+  state.power-=e.cost; o.borrowedTurn=state.turn; o.borrowedEventId=e.id; gainDiseaseXP(state,o.diseaseId,1);
   return '';
 }
 function factionTurn(state) {
@@ -99,30 +144,63 @@ export function advanceTurn(state) {
   const factionNotes=factionTurn(state);
   const notes=[], fresh=[]; let surged=0;
   const incoming=[];
+  for (const diseaseId of new Set(state.outbreaks.map(o=>o.diseaseId))) gainDiseaseXP(state,diseaseId,1);
   for (const o of [...state.outbreaks]) {
     const r=regionStats(state,o.regionId), d=disease(o.diseaseId), active=activeEvents(state,o.regionId);
     const hidden=o.hideUntil>state.turn, borrowed=o.borrowedTurn===state.turn;
+    let growthSkill=1, spreadSkill=1, visibilitySkill=1, governanceRelief=0, awarenessRelief=0, roadSkill=1, waterSkill=1, eventSkill=1;
+    const has=id=>hasDiseaseSkill(state,d.id,id);
+    if(d.id==='cold_plague'){
+      if(has('cold_silent_1')&&o.stance==='dormant') growthSkill*=1.15;
+      if(has('cold_silent_2')&&o.stance==='dormant') visibilitySkill*=.72;
+      if(has('cold_silent_3')&&hidden) growthSkill*=1.12;
+      if(has('cold_roads_1')) roadSkill*=1.12;
+      if(has('cold_roads_2')&&(r.type==='military'||active.some(e=>e.category==='military'))) spreadSkill*=1.24;
+      if(has('cold_roads_3')&&o.stance==='spread') roadSkill*=1.2;
+    } else if(d.id==='black_blight'){
+      if(has('black_city_1')&&r.population>=40) growthSkill*=1.16;
+      if(has('black_city_2')&&['military','granary'].includes(r.type)) growthSkill*=1.22;
+      if(has('black_city_3')&&o.stance==='surge') growthSkill*=1.2;
+      if(has('black_fear_1')&&o.localAwareness>=40) spreadSkill*=1.15;
+      if(has('black_fear_2')&&o.stance==='surge') {spreadSkill*=1.16;visibilitySkill*=1.12;}
+      if(has('black_fear_3')&&o.localAwareness>=60) growthSkill*=1.16;
+    } else if(d.id==='water_woe'){
+      if(has('water_river_1')) waterSkill*=1.18;
+      if(has('water_river_2')&&r.type==='port') growthSkill*=1.2;
+      if(has('water_river_3')) waterSkill*=1.2;
+      if(has('water_disaster_1')) growthSkill*=1+r.disaster/650;
+      if(has('water_disaster_2')&&active.some(e=>['disaster','population'].includes(e.category))) eventSkill*=1.2;
+      if(has('water_disaster_3')&&r.disaster>=70){growthSkill*=1.16;spreadSkill*=1.16;}
+    } else if(d.id==='red_pox'){
+      if(has('red_entry_1')&&['capital','military'].includes(r.type)) growthSkill*=1.16;
+      if(has('red_entry_2')) governanceRelief=.18;
+      if(has('red_entry_3')&&['capital','military'].includes(r.type)){growthSkill*=1.12;spreadSkill*=1.18;}
+      if(has('red_scar_1')) awarenessRelief=.35;
+      if(has('red_scar_2')&&o.localAwareness>=40) spreadSkill*=1.18;
+      if(has('red_scar_3')&&o.localAwareness>=60){spreadSkill*=1.15;governanceRelief=Math.max(governanceRelief,.25);}
+    }
     const stanceGrowth={dormant:.8,spread:1,surge:1.4}[o.stance];
     const environment=d.id==='water_woe'? .55+r.disaster/100*d.environment : d.id==='black_blight' ? .7+r.population/100 : 1;
-    const gathering=1+active.reduce((n,e)=>n+(e.spread||0),0)+(borrowed ? .45 : 0);
-    const control=1-r.governance/220-Math.max(0,o.localAwareness-40)/350;
-    const increase=Math.max(1,Math.round((2+o.infected*.38)*d.growth*stanceGrowth*environment*gathering*control*(hidden?.85:1)));
+    const gathering=(1+active.reduce((n,e)=>n+(e.spread||0),0)+(borrowed ? .45 : 0))*eventSkill;
+    const control=1-(r.governance/220)*(1-governanceRelief)-(Math.max(0,o.localAwareness-40)/350)*(1-awarenessRelief);
+    const increase=Math.max(1,Math.round((2+o.infected*.38)*d.growth*stanceGrowth*environment*gathering*control*growthSkill*(hidden?.85:1)));
     o.infected=clamp(o.infected+increase,1,r.population*10000);
-    o.localAwareness=clamp(o.localAwareness+Math.max(1,Math.round((increase/10+o.infected/160)*d.visibility*({dormant:.65,spread:1.1,surge:1.35}[o.stance])*(hidden?.6:1))));
+    o.localAwareness=clamp(o.localAwareness+Math.max(1,Math.round((increase/10+o.infected/160)*d.visibility*visibilitySkill*({dormant:.65,spread:1.1,surge:1.35}[o.stance])*(hidden?.6:1))));
     if (o.stance==='surge') surged++;
-    const neighbors=[...roads.filter(edge=>edge.includes(r.id)).map(edge=>[edge.find(id=>id!==r.id),1]),...waterways.filter(edge=>edge.includes(r.id)).map(edge=>[edge.find(id=>id!==r.id),1.2])];
-    for (const [targetId,weight] of neighbors) {
+    const neighbors=[...roads.filter(edge=>edge.includes(r.id)).map(edge=>[edge.find(id=>id!==r.id),1,'road']),...waterways.filter(edge=>edge.includes(r.id)).map(edge=>[edge.find(id=>id!==r.id),1.2,'water'])];
+    for (const [targetId,weight,routeType] of neighbors) {
       if (state.outbreaks.some(x=>x.regionId===targetId&&x.diseaseId===o.diseaseId) || incoming.some(x=>x.regionId===targetId&&x.diseaseId===o.diseaseId)) continue;
       const target=regionStats(state,targetId);
       const flow=(r.mobility+target.mobility)/200;
       const stance={dormant:.75,spread:1.3,surge:1.1}[o.stance];
       const armyBrake=state.alert>=40&&(r.type==='military'||target.type==='military') ? .55 : 1;
-      const chance=Math.min(.82,(.08+Math.min(.48,o.infected/90))*d.spread*flow*weight*stance*gathering*armyBrake*(borrowed?1.4:1));
+      const routeSkill=routeType==='water'?waterSkill:roadSkill;
+      const chance=Math.min(.88,(.08+Math.min(.48,o.infected/90))*d.spread*flow*weight*stance*gathering*armyBrake*spreadSkill*routeSkill*(borrowed?1.4:1));
       if (hash(`${state.turn}|${o.id}|${targetId}`)<chance) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null});
     }
   }
   for (const o of incoming) {
-    state.outbreaks.push(o); markRegion(state,o.regionId,notes); fresh.push(o);
+    state.outbreaks.push(o); markRegion(state,o.regionId,notes); fresh.push(o); gainDiseaseXP(state,o.diseaseId,1);
     notes.push(`${disease(o.diseaseId).name}沿路进入${byId(o.regionId).name}`);
   }
   const newEvents=events.filter(e=>e.turn===state.turn+1);
@@ -139,7 +217,9 @@ export function advanceTurn(state) {
   const kinds=new Set(state.outbreaks.map(o=>o.diseaseId)).size;
   if (kinds>=2&&!state.milestones.includes('two_diseases')) {state.milestones.push('two_diseases');state.scar+=4;}
   if (kinds>=3&&!state.milestones.includes('three_diseases')) {state.milestones.push('three_diseases');state.scar+=6;}
-  state.power+=Math.min(12,(state.outbreaks.length?1:0)+fresh.length+surged*2+(fresh.some(o=>o.regionId==='jing')?4:0));
+  const fearMastery=state.outbreaks.filter(o=>o.stance==='surge'&&hasDiseaseSkill(state,o.diseaseId,'black_fear_3')).length;
+  const scarMastery=state.outbreaks.filter(o=>o.stance==='surge'&&hasDiseaseSkill(state,o.diseaseId,'red_scar_3')).length;
+  state.power+=Math.min(12,(state.outbreaks.length?1:0)+fresh.length+surged*2+fearMastery+scarMastery+(fresh.some(o=>o.regionId==='jing')?4:0));
   state.turn++;
   if (!notes.length) notes.push(`${state.outbreaks.length}处疫区仍在暗中生长`);
   state.lastReport={turn:state.turn,headlines:notes.slice(0,3),factions:factionNotes.slice(0,3),newRegions:fresh.length,power:state.power-before.power,scar:state.scar-before.scar,alert:state.alert-before.alert};
@@ -148,6 +228,6 @@ export function advanceTurn(state) {
   return state.lastReport;
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); return s?.version===1&&Array.isArray(s.outbreaks)?s:null; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

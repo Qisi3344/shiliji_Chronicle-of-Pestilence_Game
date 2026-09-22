@@ -5,6 +5,69 @@ export const diseases = [
   { id:'red_pox', name:'赤疮', line:'它写在人的脸上，谁也无法装作没看见。', desc:'病征显眼，善侵入家庭、宫廷、军营等长期共居群体。', tags:['显症','封闭群体','社会记忆'], growth:1.1, spread:.85, visibility:1.35, environment:1.1 },
 ];
 
+export const diseaseSkills = {
+  cold_plague: {
+    title:'寒疫 · 疫路',
+    branches:[
+      {id:'roads',name:'随人而行',line:'借天下脚步，把寒意送得更远。',nodes:[
+        {id:'cold_roads_1',tier:1,xp:3,name:'客路沾寒',desc:'沿官道外溢时传播机会提高。'},
+        {id:'cold_roads_2',tier:2,xp:7,name:'军伍同息',desc:'军镇与征兵、换防事件中的传播显著增强。'},
+        {id:'cold_roads_3',tier:3,xp:12,name:'万里同行',desc:'蔓延姿态沿道路扩散时再次获得强化。'}
+      ]},
+      {id:'silent',name:'无声之寒',line:'让所有人都以为不过是寻常风寒。',nodes:[
+        {id:'cold_silent_1',tier:1,xp:3,name:'微恙',desc:'蛰伏时减少对本地增长的牺牲。'},
+        {id:'cold_silent_2',tier:2,xp:7,name:'无人知',desc:'蛰伏时地方察觉增长进一步降低。'},
+        {id:'cold_silent_3',tier:3,xp:12,name:'春来方觉',desc:'藏疫期间仍能维持更高增长，难以及时追查。'}
+      ]}
+    ]
+  },
+  black_blight: {
+    title:'黑疽 · 疫路',
+    branches:[
+      {id:'city',name:'噬城',line:'人越密，棺木便越快不够用。',nodes:[
+        {id:'black_city_1',tier:1,xp:3,name:'密巷',desc:'人口稠密地区的本地增长提高。'},
+        {id:'black_city_2',tier:2,xp:7,name:'仓营皆腐',desc:'粮仓与军镇中的增长进一步提高。'},
+        {id:'black_city_3',tier:3,xp:12,name:'一夜满城',desc:'盛发姿态的爆发增长再次提高。'}
+      ]},
+      {id:'fear',name:'惊城',line:'死者留下恐惧，活人替你把恐惧带走。',nodes:[
+        {id:'black_fear_1',tier:1,xp:3,name:'闻丧而走',desc:'地方已察觉疫情后，对外传播反而提高。'},
+        {id:'black_fear_2',tier:2,xp:7,name:'闭门之前',desc:'盛发时更易制造恐慌，并获得额外外溢。'},
+        {id:'black_fear_3',tier:3,xp:12,name:'举城惊逃',desc:'高察觉下仍保持强增长；盛发还能额外收获疫势。'}
+      ]}
+    ]
+  },
+  water_woe: {
+    title:'水殇 · 疫路',
+    branches:[
+      {id:'river',name:'逐流',line:'河不问城门，水路自会替你开门。',nodes:[
+        {id:'water_river_1',tier:1,xp:3,name:'顺流',desc:'沿水路外溢的传播机会提高。'},
+        {id:'water_river_2',tier:2,xp:7,name:'泊舟同饮',desc:'港口与水运节点的增长提高。'},
+        {id:'water_river_3',tier:3,xp:12,name:'千里一水',desc:'水路传播再次强化，河网成为真正的疫路。'}
+      ]},
+      {id:'disaster',name:'逐灾',line:'水患之后，人群、污水与饥饿都站在你这边。',nodes:[
+        {id:'water_disaster_1',tier:1,xp:3,name:'浊井',desc:'灾患越高，本地增长越强。'},
+        {id:'water_disaster_2',tier:2,xp:7,name:'灾棚',desc:'洪灾与流民事件带来的聚集收益提高。'},
+        {id:'water_disaster_3',tier:3,xp:12,name:'漫城',desc:'高灾患地区的增长与外溢同时强化。'}
+      ]}
+    ]
+  },
+  red_pox: {
+    title:'赤疮 · 疫路',
+    branches:[
+      {id:'entry',name:'入门',line:'门关得越紧，共处的人越无处可逃。',nodes:[
+        {id:'red_entry_1',tier:1,xp:3,name:'同屋',desc:'军镇与京畿等长期共居环境中增长提高。'},
+        {id:'red_entry_2',tier:2,xp:7,name:'深院',desc:'治理较高地区对赤疮的压制减弱。'},
+        {id:'red_entry_3',tier:3,xp:12,name:'宫墙亦薄',desc:'京畿、军镇中的增长与传播再次强化。'}
+      ]},
+      {id:'scar',name:'留痕',line:'病会退，人却会记住脸上的痕。',nodes:[
+        {id:'red_scar_1',tier:1,xp:3,name:'见疮不忘',desc:'地方察觉带来的控制压制减弱。'},
+        {id:'red_scar_2',tier:2,xp:7,name:'逐户相避',desc:'高察觉时仍保有更强外溢能力。'},
+        {id:'red_scar_3',tier:3,xp:12,name:'满城留痕',desc:'严密防控下仍能维持传播，并强化盛发收益。'}
+      ]}
+    ]
+  }
+};
+
 // x/y are positions on an invented map, not geographic coordinates.
 export const regions = [
   ['jing','京师','capital',86,73,77,8,62,455,120,'京畿','宫城|大典'],

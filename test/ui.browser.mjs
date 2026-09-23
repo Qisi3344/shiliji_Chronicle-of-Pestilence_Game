@@ -36,6 +36,16 @@ const run=async(viewport,label)=>{
   if(label==='mobile'){const box=await page.locator('[data-region="he_dong"] .hit').boundingBox();assert.ok(box.width>=44&&box.height>=44,'node touch target');}
   await page.locator('[data-region="he_dong"]').click();
   await page.screenshot({path:`output/${label}-placement.png`,fullPage:true});
+  if(label==='mobile'){
+    const leaf=await page.locator('.detail-panel').boundingBox();
+    assert.ok(leaf.x>=12&&leaf.x+leaf.width<=viewport.width-12,'archive leaf keeps side margins');
+    assert.equal(await page.locator('.detail-panel').evaluate(el=>getComputedStyle(el).borderTopLeftRadius),'1px');
+    assert.ok(await page.locator('.dossier-date').isVisible());
+    assert.ok(await page.locator('.dossier-close-label').isVisible());
+    await page.locator('.detail-close').click();
+    assert.equal(await page.locator('.detail-panel').count(),0);
+    await page.locator('[data-region="he_dong"]').click();
+  }
   await page.locator('details[data-disclosure]').first().locator('summary').click();
   await page.locator('[data-action="drop"]').click();
   assert.equal(await page.locator('details[data-disclosure]').first().getAttribute('open'),'','disclosure survives render');
@@ -53,6 +63,16 @@ const run=async(viewport,label)=>{
   await page.screenshot({path:`output/${label}-map.png`,fullPage:true});
   await page.locator('[data-region="he_dong"]').click();
   await page.locator('[data-action="stance"][data-value="spread"]').click();
+  if(label==='mobile'){
+    await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=0);
+    await page.screenshot({path:'output/mobile-dossier-infected.png',fullPage:true});
+    await page.locator('details[data-disclosure^="events-"] summary').click();
+    await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=el.scrollHeight);
+    await page.screenshot({path:'output/mobile-dossier-events.png',fullPage:true});
+    await page.locator('.detail-handle').click();
+    assert.equal(await page.locator('.detail-panel').count(),0,'page-edge close retained');
+    await page.locator('[data-region="he_dong"]').click();
+  }
   state=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
   assert.equal(state.outbreaks.find(o=>o.region==='he_dong').stance,'spread');
   if(label==='mobile') await page.locator('.detail-close').click();

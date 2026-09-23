@@ -1,4 +1,4 @@
-import { diseaseSkills, diseases, events, factions, regions, roads, waterways } from './data.js';
+import { diseaseSkills, diseases, events, factions, macroRegions, regions, roads, waterways } from './data.js';
 
 export const SAVE_KEY = 'yi-save-v01';
 const clamp = (n, a=0, b=100) => Math.max(a, Math.min(b, n));
@@ -88,6 +88,26 @@ export const regionStats = (state, regionId) => {
     if(o.diseaseId==='corpse_plague'&&hasDiseaseSkill(state,o.diseaseId,'corpse_pile_2')&&o.infected>=300){plagueOrder-=9;plagueGovernance-=7;}
   }
   return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility+plagueMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)+plagueOrder), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance+plagueGovernance) };
+};
+export const macroRegionOutbreaks = (state, macroId) => {
+  const macro=macroRegions.find(r=>r.id===macroId);
+  return macro ? (state.outbreaks||[]).filter(o=>macro.memberIds.includes(o.regionId)) : [];
+};
+export const macroRegionEvents = (state, macroId) => {
+  const macro=macroRegions.find(r=>r.id===macroId);
+  return macro ? activeEvents(state).filter(e=>e.regionIds.some(id=>macro.memberIds.includes(id))) : [];
+};
+export const macroRegionStats = (state, macroId) => {
+  const macro=macroRegions.find(r=>r.id===macroId);
+  if(!macro) return null;
+  const members=macro.memberIds.map(byId).filter(Boolean),outbreaks=macroRegionOutbreaks(state,macroId);
+  const population=members.reduce((n,r)=>n+r.population,0),infected=outbreaks.reduce((n,o)=>n+Number(o.infected||0),0);
+  const weighted=key=>Math.round(members.reduce((n,r)=>n+regionStats(state,r.id)[key]*r.population,0)/population);
+  const activeDiseases=[...new Set(outbreaks.map(o=>o.diseaseId))].map(id=>({id,name:disease(id)?.name||id,glyph:disease(id)?.glyph||'疫',infected:outbreaks.filter(o=>o.diseaseId===id).reduce((n,o)=>n+Number(o.infected||0),0)})).sort((a,b)=>b.infected-a.infected);
+  const infectedNodes=new Set(outbreaks.map(o=>o.regionId)).size,ratio=infected/(population*10000),coverage=members.length>1?infectedNodes/members.length:0;
+  const severity=!infected?0:ratio>=.1||coverage>=.8?5:ratio>=.03||coverage>=.6?4:ratio>=.01||coverage>=.4?3:ratio>=.001||(infectedNodes>=2&&coverage>=.2)?2:1;
+  const alertLevel=infected?Math.round(outbreaks.reduce((n,o)=>n+Number(o.localAwareness||0)*Number(o.infected||0),0)/infected):0;
+  return {population,infected,activeDiseases,outbreakCount:outbreaks.length,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
   return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
@@ -314,6 +334,6 @@ export function setTimeSpeed(state,speed) {
   if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

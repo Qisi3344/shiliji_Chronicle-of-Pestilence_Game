@@ -1,12 +1,30 @@
 import assert from 'node:assert/strict';
-import { events } from '../src/data.js';
-import { advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, newGame, periodName, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
+import { diseases, events, macroRegions, regions } from '../src/data.js';
+import { SAVE_KEY, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
+
+assert.equal(diseases.length,8);
+assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
+const assigned=macroRegions.flatMap(r=>r.memberIds);
+assert.equal(assigned.length,25);
+assert.equal(new Set(assigned).size,25);
+assert.deepEqual([...assigned].sort(),regions.map(r=>r.id).sort());
+globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify({...newGame('旧档'),seenProvinces:['北境','河东州','临河州','南河州']}):null};
+assert.deepEqual(loadGame().seenProvinces,['朔北','河东郡','临津州','洛南']);
+delete globalThis.localStorage;
 
 const game=newGame('长夜');
 assert.equal(periodName(0),'景和23年 · 8月下旬');
 assert.equal(dropDisease(game,'he_dong','cold_plague'),'');
 assert.equal(game.power,0);
 assert.equal(game.outbreaks[0].infected,1);
+const hedong=macroRegionStats(game,'hedong');
+assert.equal(hedong.infected,1);
+assert.equal(hedong.population,118);
+assert.equal(hedong.activeDiseases[0].name,'寒疫');
+assert.equal(hedong.severity,1);
+assert.equal(hedong.infectedNodeCount,1);
+assert.equal(macroRegionOutbreaks(game,'hedong').length,1);
+assert.deepEqual(macroRegionEvents(game,'hedong').map(e=>e.id),['refugees']);
 assert.equal(dropDisease(game,'he_dong','black_blight').includes('疫痕'),true);
 assert.equal(changeStance(game,game.outbreaks[0].id,'surge').includes('不足'),true);
 const firstAlert=game.alert;

@@ -158,8 +158,17 @@ export const regions = [
   ['qing_guan','青关军镇','military',20,64,57,28,48,720,88,'朔北','军营'],
   ['huai_ning','怀宁府','prefecture',28,56,68,41,51,350,590,'洛南','农田'],
   ['feng_yi','丰邑府','prefecture',35,55,73,19,63,535,625,'洛南','农田'],
-  ['shang_yuan','上原府','prefecture',25,53,62,36,46,565,70,'临津州','驿路'],
+  ['shang_yuan','上原府','prefecture',25,53,62,36,46,565,70,'朔北','驿路'],
 ].map(([id,name,type,population,mobility,order,disaster,governance,x,y,province,tags])=>({id,name,type,population,mobility,order,disaster,governance,x,y,province,tags:tags.split('|')}));
+
+export const macroRegions = [
+  {id:'capital_region',name:'京畿',memberIds:['jing'],x:455,y:120},
+  {id:'north',name:'朔北',memberIds:['bei_zhen','bei_an','ning_zhou','yan_men','qing_guan','shang_yuan'],x:300,y:115},
+  {id:'hedong',name:'河东郡',memberIds:['he_dong','qiu_yuan','yun_zhou','shan_bei'],x:235,y:330},
+  {id:'linjin',name:'临津州',memberIds:['lin_he','dong_cheng','qing_xi','chang_ping'],x:605,y:285},
+  {id:'luonan',name:'洛南',memberIds:['nan_he','xi_du','nan_du','yu_jiang','shuang_ling','huai_ning','feng_yi'],x:445,y:515},
+  {id:'donghai',name:'东海州',memberIds:['hai_ling','dong_gang','lu_zhou'],x:745,y:455},
+];
 
 export const roads = [
  ['jing','shang_yuan'],['jing','bei_an'],['jing','lin_he'],['jing','dong_cheng'],['shang_yuan','qing_guan'],['bei_an','bei_zhen'],['bei_an','he_dong'],['bei_zhen','yan_men'],['yan_men','ning_zhou'],['ning_zhou','he_dong'],['ning_zhou','shan_bei'],['shan_bei','qiu_yuan'],['qiu_yuan','he_dong'],['he_dong','yun_zhou'],['he_dong','lin_he'],['yun_zhou','shuang_ling'],['yun_zhou','chang_ping'],['lin_he','chang_ping'],['lin_he','qing_xi'],['lin_he','dong_cheng'],['dong_cheng','dong_gang'],['qing_xi','dong_gang'],['qing_xi','hai_ling'],['chang_ping','nan_he'],['shuang_ling','xi_du'],['xi_du','yu_jiang'],['yu_jiang','nan_he'],['nan_he','nan_du'],['nan_he','feng_yi'],['nan_du','hai_ling'],['hai_ling','lu_zhou'],['lu_zhou','feng_yi'],['yu_jiang','huai_ning'],['huai_ning','feng_yi']

@@ -15,13 +15,14 @@ const routeFromLocation=()=>{
 const appBase=location.pathname.endsWith('/')?location.pathname:location.pathname.replace(/\/[^/]*$/,'/')||'/';
 const macroForRegion=id=>macroRegions.find(m=>m.memberIds.includes(id));
 const mapBoxFor=(mode='realm',macroId=null)=>{
- if(mode==='realm')return {x:20,y:10,w:850,h:650};
+ if(mode==='realm')return {x:-100,y:-65,w:1180,h:810};
+ if(macroId==='donghai')return {x:650,y:225,w:420,h:410};
  const members=macroRegions.find(m=>m.id===macroId)?.memberIds.map(id=>one(regions,id)).filter(Boolean)||regions;
  const xs=members.map(r=>r.x),ys=members.map(r=>r.y),pad=window.innerWidth<768?70:95;
  const x=Math.max(0,Math.min(...xs)-pad),y=Math.max(0,Math.min(...ys)-pad),right=Math.min(900,Math.max(...xs)+pad),bottom=Math.min(680,Math.max(...ys)+pad);
  return {x,y,w:Math.max(260,right-x),h:Math.max(260,bottom-y)};
 };
-const stateUI={route:routeFromLocation(),returnRoute:'/',tab:'world',selected:null,detailOpen:false,modal:null,toast:'',filter:'all',prologue:0,mapMode:'realm',activeMacroRegion:null,map:{x:20,y:10,w:850,h:650},nameSuggestion:'长夜',activeOutbreak:null,dropChoice:null,logOpen:null,briefTurn:null,birdHops:[]};
+const stateUI={route:routeFromLocation(),returnRoute:'/',tab:'world',selected:null,detailOpen:false,modal:null,toast:'',filter:'all',prologue:0,mapMode:'realm',activeMacroRegion:null,map:{x:-100,y:-65,w:1180,h:810},nameSuggestion:'长夜',activeOutbreak:null,dropChoice:null,logOpen:null,briefTurn:null,birdHops:[]};
 const defaultMap=()=>mapBoxFor(stateUI.mapMode,stateUI.activeMacroRegion);
 stateUI.map=defaultMap();
 let narrowMap=window.innerWidth<768;
@@ -61,7 +62,7 @@ function prologuePage(){const index=stateUI.prologue;return `<div class="prologu
 function diseasePage(){const starters=diseases.filter(d=>d.starter);return pageFrame('择一疫，降于人间。','初临只能从四种常疫中择一；更异样的疫，会随着王朝腐坏而显现。',`<div class="disease-grid">${starters.map((d,i)=>`<article class="disease-card disease-${i}"><span class="eyebrow">常疫 / ${String(i+1).padStart(2,'0')}</span><div class="disease-glyph">${d.glyph}</div><h2>${d.name}</h2><p class="verse">${d.line}</p><p>${d.desc}</p><div class="tag-row">${d.tags.map(t=>pill(t)).join('')}</div><button class="primary" data-action="first-disease" data-id="${d.id}">降此疫 →</button></article>`).join('')}</div><div class="future-plagues"><span>后世疫册尚有残页</span>　牲疫 · 禽疫 · 血疫 · 尸疫</div>`,'/prologue');}
 // ==== 舆图组件：地标图标 / 地貌底纹 / 道路分级 ====
 // 方案对应：《天下舆图视觉改造方案 v1》1~13 节。所有图标为简单 path，16~32px 可辨。
-const MAP_W=900,MAP_H=680;
+const MAP_W=1280,MAP_H=940,MAP_X=-160,MAP_Y=-100;
 const ICON_DEFS={palace:settlement('capital'),cityGate:settlement('prefecture'),watchtower:settlement('military'),harbor:settlement('port'),granary:settlement('granary'),frontierFort:settlement('military'),grandGranary:settlement('granary'),bridgeCity:settlement('prefecture'),ferryPort:settlement('port'),riverPort:settlement('port')};
 // 一级节点（王朝级）、三级节点（功能性小节点）
 const TIER1=new Set(['jing','lin_he','bei_zhen','chang_ping','xi_du','nan_du','he_dong']);
@@ -76,20 +77,20 @@ const RELIEF_GROUND=reliefGround(LAND_PATH);
 const MACRO_PATHS={
  north:'M95 88 Q153 35 250 58 L380 32 L515 44 Q636 30 780 90 L830 158 L760 207 L650 190 L560 205 L470 178 L380 194 L285 180 L190 207 L100 170 Z',
  hedong:'M100 170 L190 207 L285 180 L380 194 L423 252 L401 390 L330 452 L210 430 L90 440 L55 306 Z',
- linjin:'M423 252 L380 194 L470 178 L560 205 L650 190 L760 207 L836 301 L817 391 L700 412 L600 390 L500 412 L401 390 Z',
+ linjin:'M423 252 L380 194 L470 178 L560 205 L650 190 L760 207 L730 220 L710 320 L700 412 L600 390 L500 412 L401 390 Z',
  luonan:'M90 440 L210 430 L330 452 L401 390 L500 412 L600 390 L700 412 L690 520 L610 640 L514 628 L415 639 L289 588 L157 553 Z',
- donghai:'M700 412 L817 391 L801 466 L722 604 L690 520 Z',
+ donghai:'M760 207 L836 301 L817 391 L801 466 L722 604 L690 520 L700 412 L710 320 L730 220 Z',
  capital_region:'M400 82 L455 58 L515 80 L530 125 L500 164 L445 175 L400 145 Z'
 };
 const MAIN_LINKS=[['capital_region','north','road'],['capital_region','linjin','road'],['hedong','linjin','road'],['hedong','luonan','road'],['linjin','donghai','water'],['linjin','luonan','road'],['luonan','donghai','water']];
 const severityName=['无疫','潜伏','轻疫','中疫','重疫','崩坏'];
 function realmMapArt(interactive=true){
- const box=stateUI.mapMode==='realm'?stateUI.map:{x:20,y:10,w:850,h:650},current=game||newGame(),ordered=[...macroRegions.filter(m=>m.id!=='capital_region'),one(macroRegions,'capital_region')];
+ const box=stateUI.mapMode==='realm'?stateUI.map:{x:-100,y:-65,w:1180,h:810},current=game||newGame(),ordered=[...macroRegions.filter(m=>m.id!=='capital_region'),one(macroRegions,'capital_region')];
  const link=([a,b,kind])=>{const p=one(macroRegions,a),q=one(macroRegions,b);return `<path class="macro-${kind}" d="M${p.x} ${p.y} Q${(p.x+q.x)/2+12} ${(p.y+q.y)/2-12} ${q.x} ${q.y}"/>`;};
  const area=m=>{const stats=macroRegionStats(current,m.id),eventList=macroRegionEvents(current,m.id),selected=stateUI.selected===m.id;
   const auras=macroRegionOutbreaks(current,m.id).map(o=>{const r=one(regions,o.regionId),radius=28+stats.severity*9+Math.min(24,Math.log10(Number(o.infected||0)+1)*8);return `<circle class="macro-infection-aura" cx="${r.x}" cy="${r.y}" r="${radius}"/>`;}).join('');
   const diseaseText=stats.activeDiseases.slice(0,2).map(d=>d.glyph).join('·')+(stats.activeDiseases.length>2?` +${stats.activeDiseases.length-2}`:'');
-  return `<g class="macro-region severity-${stats.severity} ${selected?'selected':''}" ${interactive?`data-macro="${m.id}" tabindex="0" role="button" aria-label="查看${m.name}，${severityName[stats.severity]}"`:''}><path class="macro-shape" d="${MACRO_PATHS[m.id]}"/><g clip-path="url(#clip-${m.id})">${stats.severity?`<path class="macro-infection-wash" d="${MACRO_PATHS[m.id]}"/>`:''}${auras}</g><g class="macro-title" transform="translate(${m.x} ${m.y})"><text>${m.name}</text><text class="macro-status" y="24">${severityName[stats.severity]}${stats.infected?` · ${number(stats.infected)}`:''}${diseaseText?` · ${diseaseText}`:''}</text>${eventList.length?`<text class="macro-event" x="48" y="-17">事 ${eventList.length}</text>`:''}</g></g>`;};
+  return `<g class="macro-region severity-${stats.severity} ${selected?'selected':''}" ${interactive?`data-macro="${m.id}" tabindex="0" role="button" aria-label="查看${m.name}，${severityName[stats.severity]}"`:''}>${m.id==='capital_region'?`<circle cx="${m.x}" cy="${m.y}" r="74" fill="transparent"/>`:''}<path class="macro-shape" d="${MACRO_PATHS[m.id]}"/><g clip-path="url(#clip-${m.id})">${stats.severity?`<path class="macro-infection-wash" d="${MACRO_PATHS[m.id]}"/>`:''}${auras}</g><g class="macro-title" transform="translate(${m.x} ${m.y})"><text>${m.name}</text><text class="macro-status" y="24">${severityName[stats.severity]}${stats.infected?` · ${number(stats.infected)}`:''}${diseaseText?` · ${diseaseText}`:''}</text>${eventList.length?`<text class="macro-event" x="48" y="-17">事 ${eventList.length}</text>`:''}</g></g>`;};
  return `<svg class="world-svg realm-svg" viewBox="${box.x} ${box.y} ${box.w} ${box.h}" role="img" aria-label="靖朝六大区域天下舆图"><defs>${reliefDefs}<filter id="macro-glow"><feGaussianBlur stdDeviation="18"/></filter><path id="mn" d="M-4 4 Q0 -4 4 4" fill="none"/>${macroRegions.map(m=>`<clipPath id="clip-${m.id}"><path d="${MACRO_PATHS[m.id]}"/></clipPath>`).join('')}</defs>${RELIEF_GROUND}<g class="macro-routes">${MAIN_LINKS.map(link).join('')}</g><g clip-path="url(#relief-land-clip)">${ordered.map(area).join('')}</g></svg>`;
 }
 // 动态路线：流民 / 军队沿事件官道（方案 9.1/9.2），ai 起点取区域列表第一地，终点取下一处相邻官道地
@@ -216,7 +217,7 @@ function render(){document.documentElement.classList.toggle('large-text',!!setti
  window.render_game_to_text=()=>JSON.stringify({coordinateSystem:'SVG origin top-left, x right, y down; 900x680 map',route:stateUI.route,tab:stateUI.tab,mapMode:stateUI.mapMode,activeMacroRegion:stateUI.activeMacroRegion,selected:stateUI.selected,selectedDisease:stateUI.dropChoice||game?.firstDisease||null,visibleRegions:stateUI.mapMode==='region'?one(macroRegions,stateUI.activeMacroRegion)?.memberIds:macroRegions.map(m=>m.id),modal:stateUI.modal,turn:game?.turn,dayInTurn:game?.dayInTurn,power:game?.power,scar:game?.scar,alert:game?.alert,drops:game?.drops,outbreaks:game?.outbreaks?.map(o=>({region:o.regionId,disease:o.diseaseId,infected:o.infected,stance:o.stance})),activeEvents:game?activeEvents(game).map(e=>e.id):[]});
  window.advanceTime=()=>{if(game){const report=advanceDay(game);saveGame(game);if(report){stateUI.briefTurn=report.turn;}render();}};
 }
-function zoom(factor){const box=stateUI.map,cx=box.x+box.w/2,cy=box.y+box.h/2,w=Math.max(280,Math.min(MAP_W,box.w*factor)),h=Math.max(260,Math.min(MAP_H,box.h*factor));stateUI.map={x:Math.max(0,Math.min(MAP_W-w,cx-w/2)),y:Math.max(0,Math.min(MAP_H-h,cy-h/2)),w,h};render();}
+function zoom(factor){const box=stateUI.map,cx=box.x+box.w/2,cy=box.y+box.h/2,w=Math.max(280,Math.min(MAP_W,box.w*factor)),h=Math.max(260,Math.min(MAP_H,box.h*factor));stateUI.map={x:Math.max(MAP_X,Math.min(MAP_X+MAP_W-w,cx-w/2)),y:Math.max(MAP_Y,Math.min(MAP_Y+MAP_H-h,cy-h/2)),w,h};render();}
 app.addEventListener('submit',e=>{if(e.target.id!=='name-form')return;e.preventDefault();const name=e.target.elements.name.value.trim();if(!name)return toast('请为此世之疫命名');game=newGame(name);saveGame(game);stateUI.prologue=0;go('/prologue');});
 app.addEventListener('input',e=>{if(e.target.id==='plague-name')document.querySelector('#name-live').textContent=e.target.value.trim()||'无名';});
 app.addEventListener('change',e=>{if(e.target.dataset.setting){settings[e.target.dataset.setting]=e.target.checked;localStorage.setItem('yi-settings-v01',JSON.stringify(settings));render();}if(e.target.id==='drop-disease'){stateUI.dropChoice=e.target.value;render();}});
@@ -276,7 +277,7 @@ setInterval(tickClock,250);
 
 app.addEventListener('keydown',e=>{const target=e.target.closest('[data-region],[data-macro]');if(target&&(e.key==='Enter'||e.key===' ')){e.preventDefault();stateUI.selected=target.dataset.region||target.dataset.macro;stateUI.detailOpen=true;render();}});
 app.addEventListener('pointerdown',e=>{if(!e.target.closest('#map-stage')||e.target.closest('[data-region],[data-macro]'))return;pointer={x:e.clientX,y:e.clientY,box:{...stateUI.map}};});
-window.addEventListener('pointerup',e=>{if(!pointer)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.abs(dx)+Math.abs(dy)>8){const stage=document.querySelector('#map-stage');if(stage){const scale=pointer.box.w/stage.clientWidth;stateUI.map.x=Math.max(0,Math.min(MAP_W-stateUI.map.w,pointer.box.x-dx*scale));stateUI.map.y=Math.max(0,Math.min(MAP_H-stateUI.map.h,pointer.box.y-dy*scale));document.querySelector('.world-svg')?.setAttribute('viewBox',`${stateUI.map.x} ${stateUI.map.y} ${stateUI.map.w} ${stateUI.map.h}`);suppressClick=true;setTimeout(()=>suppressClick=false,100);}}pointer=null;});
+window.addEventListener('pointerup',e=>{if(!pointer)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.abs(dx)+Math.abs(dy)>8){const stage=document.querySelector('#map-stage');if(stage){const scale=pointer.box.w/stage.clientWidth;stateUI.map.x=Math.max(MAP_X,Math.min(MAP_X+MAP_W-stateUI.map.w,pointer.box.x-dx*scale));stateUI.map.y=Math.max(MAP_Y,Math.min(MAP_Y+MAP_H-stateUI.map.h,pointer.box.y-dy*scale));document.querySelector('.world-svg')?.setAttribute('viewBox',`${stateUI.map.x} ${stateUI.map.y} ${stateUI.map.w} ${stateUI.map.h}`);suppressClick=true;setTimeout(()=>suppressClick=false,100);}}pointer=null;});
 const syncRoute=()=>{stateUI.route=routeFromLocation();stateUI.modal=null;render();};
 window.addEventListener('popstate',syncRoute);
 window.addEventListener('hashchange',syncRoute);

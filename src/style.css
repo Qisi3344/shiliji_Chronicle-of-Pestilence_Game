@@ -291,6 +291,15 @@ button:not(:disabled):active{transform:translateY(0)}
 
 /* Relief cartography: light from upper left, quiet borders, live information above. */
 .relief-ground{pointer-events:none}
+.world-sea{fill:#263f43}
+.foreign-land{fill:#4d5451;stroke:#747d77;stroke-width:1;opacity:.8;filter:blur(.6px)}
+.foreign-relief{opacity:.28;filter:grayscale(1) blur(1px)}
+.sea-contours{fill:none;stroke:#90aaa8;stroke-width:1;opacity:.14}
+.offshore-islands{fill:#697571;stroke:#9fa99c;stroke-width:.8;opacity:.58;filter:blur(.45px)}
+.nearshore-islands{fill:#526453;stroke:#b0aa87;stroke-width:.8}
+.maritime-boundary{fill:none;stroke:#c5b386;stroke-width:.8;stroke-dasharray:3 5;opacity:.35}
+.world-context-labels{font:12px 'Noto Serif SC',serif;fill:#a1aea7;letter-spacing:4px;opacity:.5}
+.world-context-labels .east-sea-label{font-size:28px;letter-spacing:12px}
 .relief-shelf{fill:none;stroke:#557975;stroke-width:25;opacity:.13}
 .relief-coast-shadow{fill:#142b29;stroke:#102422;stroke-width:5}
 .relief-land{fill:url(#relief-earth);stroke:#b0aa87;stroke-width:1.2}
@@ -322,7 +331,7 @@ button:not(:disabled):active{transform:translateY(0)}
 .road.military-road{stroke:#b2b6a2;stroke-width:1.4;opacity:.6}
 .water{stroke:#91b7b0;stroke-width:2;opacity:.65}
 @media(max-width:767px){
- .realm-svg .macro-title text{font-size:30px;letter-spacing:1px}
+ .realm-svg .macro-title text{font-size:38px;letter-spacing:1px}
  .realm-svg .macro-title .macro-status{font-size:16px;letter-spacing:0}
  .realm-svg .macro-title .macro-event{font-size:14px}
  .relief-geography{opacity:.7}

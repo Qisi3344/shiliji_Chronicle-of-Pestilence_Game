@@ -36,8 +36,29 @@ export function reliefGround(land) {
   const orchards=Array.from({length:28},(_,i)=>{const x=402+(i%7)*14+Math.sin(i*4)*7,y=548+Math.floor(i/7)*12+Math.cos(i*7)*5;return `<path d="M${x-3} ${y+4}q-3-5 3-10 6 5 3 10Z"/>`;}).join('');
   return `<g class="relief-ground" aria-hidden="true">
     <defs><clipPath id="relief-land-clip"><path d="${land}"/></clipPath></defs>
-    <path class="relief-shelf" d="${land}"/>
-    <path class="relief-coast-shadow" d="${land}" transform="translate(0 8)"/>
+    <g class="world-context">
+      <rect class="world-sea" x="-1800" y="-1800" width="4600" height="4600"/>
+      <path class="foreign-land" d="M-1800-1800H640L688-220 728-160 710-90 758-42 742 20 780 90 820 180 780 500 722 604 688 698 729 767 695 847 732 948 701 1070 774 1260 730 2800H-1800Z"/>
+      <g class="foreign-relief">
+        ${[[-70,150,1.5],[40,-15,1.2],[190,-65,1.5],[370,-50,1.1],[575,-30,1.2],[-35,355,1.4],[0,490,1.1],[130,610,.9],[280,710,1.3],[520,725,1.1],[660,780,1]].map(([x,y,s])=>ridge(x,y,s)).join('')}
+        <path d="M-100 340Q-10 295 66 306M180 700Q320 656 455 712T663 703" fill="none" stroke="#a1a69d" stroke-width="2" opacity=".3"/>
+      </g>
+      <g class="sea-contours">
+        <path d="M856 117Q905 232 863 357T831 498 759 673M902 71Q963 229 920 374T879 547 816 741M987 20Q1045 210 1000 399T967 620"/>
+      </g>
+      <g class="offshore-islands">
+        <path d="M881 265q2-8 9-7l4-8q9 1 8 9l6 9-7 7q2 13-9 9l-3-6q-10 3-8-13Z"/>
+        <path d="M869 310q3-9 8-6l2 7q12 1 4 8l-10 2Z"/>
+        <path d="M914 429q1-13 9-12l7-7q11-3 10 8l11 5-6 8q5 10-6 11l-5 7q-7 2-9-4l-10-2q-6-6-1-14Z"/>
+        <path d="M957 477q3-9 10-10l5 7q11 0 5 10l-7 2q0 11-9 5l-6-5Z"/>
+        <path d="M850 547q2-10 10-8l3-6 9 3-2 8q12 2 11 13l-9 3-4 12q-10 0-12-8l-7-1Z"/>
+        <path d="M832 595q2-11 9-9l2 6q12-1 6 10l-9-1-6 6Z"/>
+        <path d="M1018 316q6-4 6-14l7-8 10 5 13-2q8 2 6 12l6 7-8 10q6 12-2 19l-13 1-10 8-7-7q-15 2-12-8l5-10Z"/>
+      </g>
+      <path class="maritime-boundary" d="M829 220Q867 273 862 348T858 440 811 548L733 604"/>
+      <g class="nearshore-islands"><path d="M839 380q8-7 11 1l-4 8q-9 5-12-2Z"/><path d="M821 454q4-11 12-6l-2 8 4 6q-10 8-17-1Z"/></g>
+      <g class="world-context-labels"><text x="-35" y="380" transform="rotate(-90 -35 380)">西陲 · 境外</text><text x="350" y="-42">北境之外</text><text x="400" y="740">南疆 · 境外</text><text class="east-sea-label" x="935" y="380">东 海</text><text x="920" y="575">海外诸屿</text></g>
+    </g>
     <path class="relief-land" d="${land}"/>
     <g clip-path="url(#relief-land-clip)">
       <path fill="#899075" opacity=".13" d="M72 223Q267 157 395 266T768 367L717 449Q448 321 93 450Z"/>
@@ -50,7 +71,7 @@ export function reliefGround(land) {
       <path fill="url(#relief-paper)" d="${land}"/>
     </g>
     <path class="relief-coast-edge" d="${land}"/>
-    <g class="relief-geography"><text x="199" y="180">朔 · 山</text><text x="522" y="345" transform="rotate(24 522 345)">临 江</text><text x="523" y="559">洛 泽</text><text x="811" y="358" transform="rotate(90 811 358)">东 海</text></g>
+    <g class="relief-geography"><text x="199" y="180">朔 · 山</text><text x="522" y="345" transform="rotate(24 522 345)">临 江</text><text x="523" y="559">洛 泽</text></g>
   </g>`;
 }
 

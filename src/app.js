@@ -1,7 +1,6 @@
 import { diseaseSkills, diseases, events, factions, macroRegions, regions, roads, waterways } from './data.js';
 import { SAVE_KEY, activeEvents, advanceDay, alertName, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropCost, dropDisease, dropLimit, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionOutbreaks, regionStats, saveGame, setTimeSpeed, stageName, unlockDiseaseSkill } from './game.js';
 
-import './game-shell.css';
 import { reliefDefs, reliefGround, settlement } from './map-art.js';
 
 const app=document.querySelector('#app');

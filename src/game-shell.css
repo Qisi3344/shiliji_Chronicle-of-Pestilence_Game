@@ -170,6 +170,7 @@ kbd{font:11px 'Noto Sans SC',sans-serif;border:1px solid #b8a77e44;border-radius
 @media(max-width:540px){.skill-branches{grid-template-columns:1fr}.collection-index{grid-template-columns:repeat(4,minmax(0,1fr))}.session-bar .hud-stats{gap:12px}.news-item{grid-template-columns:1fr;gap:8px}.filter-row{flex-wrap:wrap}.filter-row button{padding:8px 13px}}
 /* A loose archive leaf; controls and scrolling retain their existing behavior. */
 @media(max-width:1023px){
+ .game-shell:has(.detail-panel.open) .turn-brief{display:none}
  .world-layout .detail-panel{
   inset:auto max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));
   max-height:78dvh;border-radius:1px;border:1px solid #8a806252;overflow:hidden;

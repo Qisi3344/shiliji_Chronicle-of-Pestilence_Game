@@ -65,6 +65,7 @@ const run=async(viewport,label)=>{
   await page.locator('[data-action="stance"][data-value="spread"]').click();
   if(label==='mobile'){
     await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=0);
+    assert.equal(await page.locator('.turn-brief').isVisible(),false,'report must not cover the archive leaf');
     await page.screenshot({path:'output/mobile-dossier-infected.png',fullPage:true});
     await page.locator('details[data-disclosure^="events-"] summary').click();
     await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=el.scrollHeight);

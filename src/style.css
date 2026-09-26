@@ -288,3 +288,53 @@ button:not(:disabled):active{transform:translateY(0)}
 .macro-region{cursor:pointer}.macro-shape{fill:#252925;stroke:#776c55;stroke-width:2;transition:fill .16s,stroke .16s}.macro-region:nth-of-type(even) .macro-shape{fill:#222724}.macro-region:hover .macro-shape,.macro-region:focus .macro-shape,.macro-region.selected .macro-shape{fill:#30322b;stroke:#d0b47d;stroke-width:3;outline:none}.macro-region:focus{outline:none}.macro-region.severity-1 .macro-shape{fill:#292825}.macro-region.severity-2 .macro-shape{fill:#302724}.macro-region.severity-3 .macro-shape{fill:#382421}.macro-region.severity-4 .macro-shape,.macro-region.severity-5 .macro-shape{fill:#42221f}.macro-infection-wash{fill:#762d28;opacity:.08}.severity-2 .macro-infection-wash{opacity:.13}.severity-3 .macro-infection-wash{opacity:.2}.severity-4 .macro-infection-wash{opacity:.3}.severity-5 .macro-infection-wash{opacity:.4}.macro-infection-aura{fill:#a83832;opacity:.32;filter:url(#macro-glow);pointer-events:none}.severity-3 .macro-infection-aura{opacity:.43}.severity-4 .macro-infection-aura,.severity-5 .macro-infection-aura{opacity:.54}.macro-terrain{fill:none;stroke:#a99a7650;stroke-width:2.2;pointer-events:none}.macro-terrain-luonan{fill:#61747b12;stroke:#708d9760}.macro-terrain-linjin,.macro-terrain-donghai{stroke:#678c9b70}.macro-terrain-capital_region{stroke:#c6aa725f}.macro-title{pointer-events:none}.macro-title text{fill:#e2d1b4;text-anchor:middle;font:700 30px 'Noto Serif SC',serif;paint-order:stroke;stroke:#171a18;stroke-width:5px}.macro-title .macro-status{fill:#b4a48e;font:12px 'Noto Sans SC',sans-serif;letter-spacing:.08em;stroke-width:3px}.macro-title .macro-event{fill:#e0b05e;font:700 11px 'Noto Sans SC',sans-serif;stroke-width:3px}.macro-routes{pointer-events:none}.macro-road,.macro-water{fill:none;stroke:#a7956e;stroke-width:4;opacity:.55;stroke-dasharray:9 7}.macro-water{stroke:#628b9d;stroke-width:6;stroke-dasharray:none;opacity:.64}.region-focus{fill:#35352e;stroke:#988666;stroke-width:2}.map-node:focus{outline:none}.map-node:focus .node-ring{stroke:#fff1c9;stroke-width:3}.map-back{display:inline-flex;align-items:center;min-height:36px;padding:0;border:0;background:none;color:#d7bd96;font-size:.78rem}.map-crumb{margin-left:11px;color:#8e806e;font-size:.72rem}.macro-disease-line{color:#d4b27f;margin:0 0 15px}.macro-list-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #3b332d}.macro-list-row b{font-weight:500}.macro-list-row span{color:#a99b87;font-size:.78rem;white-space:nowrap}.macro-enter{border-top:1px solid #4a3b32;background:#211c1a;padding:14px 20px calc(14px + env(safe-area-inset-bottom))}.macro-detail{display:flex;flex-direction:column}.macro-detail .detail-scroll{flex:1;min-height:0;overflow:auto}.home-map .macro-title{opacity:.32}
 @media(max-width:767px){.realm-svg .macro-title text{font-size:34px}.realm-svg .macro-title .macro-status{font-size:15px}.realm-svg .macro-title .macro-event{font-size:13px}.realm-svg .macro-shape{stroke-width:4}.realm-svg .macro-region.selected .macro-shape{stroke-width:6}.map-crumb{display:none}.map-back{min-height:32px}.macro-enter{padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
 .map-heading{position:relative;z-index:2;flex:none;pointer-events:auto;background:#181a1a}
+
+/* Relief cartography: light from upper left, quiet borders, live information above. */
+.relief-ground{pointer-events:none}
+.world-sea{fill:#263f43}
+.foreign-land{fill:#4d5451;stroke:#747d77;stroke-width:1;opacity:.8;filter:blur(.6px)}
+.foreign-relief{opacity:.28;filter:grayscale(1) blur(1px)}
+.sea-contours{fill:none;stroke:#90aaa8;stroke-width:1;opacity:.14}
+.offshore-islands{fill:#697571;stroke:#9fa99c;stroke-width:.8;opacity:.58;filter:blur(.45px)}
+.nearshore-islands{fill:#526453;stroke:#b0aa87;stroke-width:.8}
+.maritime-boundary{fill:none;stroke:#c5b386;stroke-width:.8;stroke-dasharray:3 5;opacity:.35}
+.world-context-labels{font:12px 'Noto Serif SC',serif;fill:#a1aea7;letter-spacing:4px;opacity:.5}
+.world-context-labels .east-sea-label{font-size:28px;letter-spacing:12px}
+.relief-shelf{fill:none;stroke:#557975;stroke-width:25;opacity:.13}
+.relief-coast-shadow{fill:#142b29;stroke:#102422;stroke-width:5}
+.relief-land{fill:url(#relief-earth);stroke:#b0aa87;stroke-width:1.2}
+.relief-coast-edge{fill:none;stroke:#c0bc98;stroke-width:.8;opacity:.55}
+.relief-fields{fill:#b1a27a;fill-opacity:.09;stroke:#b3a17b;stroke-width:.6;stroke-opacity:.25}
+.relief-forest{fill:#253f34;stroke:#91a184;stroke-width:.35;opacity:.5}
+.relief-river-bank{fill:none;stroke:#233a32;stroke-width:9}
+.relief-river{fill:none;stroke:url(#relief-water);stroke-width:5}
+.relief-stream{fill:none;stroke:#79978c;stroke-width:1.8;opacity:.65}
+.relief-lake{fill:#456d6a;stroke:#90a498;stroke-width:1}
+.relief-geography text{font:11px 'Noto Serif SC',serif;letter-spacing:5px;fill:#c1c0a0;opacity:.45}
+.relief-settlement{stroke:none;filter:url(#relief-contact)}
+.world-svg{background:radial-gradient(ellipse at 50% 42%,#273b36 0%,#172b29 55%,#14201f 100%)}
+.map-panel .macro-region .macro-shape{fill:#d2be8b;fill-opacity:.015;stroke:#c5b386;stroke-opacity:.38;stroke-width:1;stroke-dasharray:3 3}
+.map-panel .macro-region:hover .macro-shape,.map-panel .macro-region:focus .macro-shape,.map-panel .macro-region.selected .macro-shape{fill-opacity:.12;stroke:#ecce8d;stroke-opacity:1;stroke-width:2;stroke-dasharray:none}
+.home-map .macro-shape{fill:transparent;stroke:#c5b386;stroke-width:1;stroke-opacity:.25}
+.macro-road{stroke:#ccb68b;stroke-width:1.8;stroke-dasharray:4 5;opacity:.58}
+.macro-water{stroke:#9cb9b0;stroke-width:2;stroke-dasharray:2 5;opacity:.7}
+.macro-title text{font-size:26px;font-weight:500;letter-spacing:3px;stroke-width:3px;stroke:#25352e}
+.macro-title .macro-status{font-size:11px;letter-spacing:.5px;fill:#d1c9ae}
+.macro-title .macro-event{font-size:10px;letter-spacing:0}
+.region-focus{fill:#e1c693;fill-opacity:.035;stroke:#d9c396;stroke-opacity:.45;stroke-width:1;stroke-dasharray:3 4;pointer-events:none}
+.map-node .landmark{stroke:none;fill:none;filter:none}
+.map-node .node-ring{fill:none;stroke:#d1ba88;stroke-width:1;stroke-opacity:0}
+.map-node.selected .node-ring,.map-node:focus .node-ring{stroke-opacity:1;stroke-width:1.4}
+.map-node.infected .node-ring{stroke-opacity:.7;stroke-width:1.2}
+.map-node .node-name{font-size:13px;font-weight:500;stroke:#23352e;stroke-width:3px;letter-spacing:1px}
+.road{stroke:#c1ae85;stroke-width:1.6;stroke-dasharray:3 2;opacity:.7;filter:drop-shadow(0 1px 1px #17271d)}
+.road.military-road{stroke:#b2b6a2;stroke-width:1.4;opacity:.6}
+.water{stroke:#91b7b0;stroke-width:2;opacity:.65}
+@media(max-width:767px){
+ .realm-svg .macro-title text{font-size:38px;letter-spacing:1px}
+ .realm-svg .macro-title .macro-status{font-size:16px;letter-spacing:0}
+ .realm-svg .macro-title .macro-event{font-size:14px}
+ .relief-geography{opacity:.7}
+ .region-svg .map-node .node-name{font-size:20px}
+ .region-svg .map-node.tier-3 .node-name{display:block;font-size:18px}
+}

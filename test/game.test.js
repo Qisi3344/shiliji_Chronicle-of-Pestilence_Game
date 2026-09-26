@@ -22,6 +22,7 @@ assert.equal(hedong.infected,1);
 assert.equal(hedong.population,118);
 assert.equal(hedong.activeDiseases[0].name,'寒疫');
 assert.equal(hedong.severity,1);
+assert.equal(hedong.infectedNodeCount,1);
 assert.equal(macroRegionOutbreaks(game,'hedong').length,1);
 assert.deepEqual(macroRegionEvents(game,'hedong').map(e=>e.id),['refugees']);
 assert.equal(dropDisease(game,'he_dong','black_blight').includes('疫痕'),true);

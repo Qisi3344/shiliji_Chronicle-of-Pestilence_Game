@@ -107,7 +107,7 @@ export const macroRegionStats = (state, macroId) => {
   const infectedNodes=new Set(outbreaks.map(o=>o.regionId)).size,ratio=infected/(population*10000),coverage=members.length>1?infectedNodes/members.length:0;
   const severity=!infected?0:ratio>=.1||coverage>=.8?5:ratio>=.03||coverage>=.6?4:ratio>=.01||coverage>=.4?3:ratio>=.001||(infectedNodes>=2&&coverage>=.2)?2:1;
   const alertLevel=infected?Math.round(outbreaks.reduce((n,o)=>n+Number(o.localAwareness||0)*Number(o.infected||0),0)/infected):0;
-  return {population,infected,activeDiseases,outbreakCount:outbreaks.length,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
+  return {population,infected,activeDiseases,outbreakCount:outbreaks.length,infectedNodeCount:infectedNodes,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
   return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };

@@ -34,6 +34,9 @@ kbd{font:11px 'Noto Sans SC',sans-serif;border:1px solid #b8a77e44;border-radius
 .map-heading h2{font-size:19px;font-weight:500;letter-spacing:3px;text-shadow:0 2px 6px #000}
 .map-tools{gap:7px}
 .map-tools button{width:40px;height:40px;min-width:40px;background:#17231fe6;border:1px solid #a49d7455;color:#dad1b4;font-size:20px}
+/* 司南：舆图装饰，不可交互 */
+.map-compass{position:absolute;top:108px;right:20px;z-index:2;pointer-events:none;opacity:.92;filter:drop-shadow(0 2px 8px #0009)}
+@media(max-width:767px){.map-compass{top:92px;right:12px}.map-compass svg{width:46px;height:46px}}
 .map-stage{min-height:0;padding:0;height:100%}
 .world-svg{height:100%;max-height:none;min-height:0;filter:none}
 .map-foot{position:absolute;inset:auto 24px 18px;width:fit-content;padding:9px 14px;gap:20px;min-height:36px;border:1px solid #afad7730;background:#131f1bd9;color:#b9bca5;font-size:12px;pointer-events:none}
@@ -122,7 +125,6 @@ kbd{font:11px 'Noto Sans SC',sans-serif;border:1px solid #b8a77e44;border-radius
 .turn-brief{inset:auto 24px 24px auto;width:340px;max-width:calc(100vw - 48px);padding:20px 38px 20px 20px;background:#171f1bf5;border:1px solid #ac97654d;box-shadow:0 8px 30px #0005}
 .turn-brief strong{font-size:17px}
 .turn-brief p{font-size:13px;margin:8px 0}
-.turn-brief-stats{display:none}
 .turn-brief .brief-close{position:absolute;right:0;top:0;min-width:36px;min-height:40px;font-size:20px}
 .sheet-shade{display:none}
 .reading-note{font-size:12px;color:#b2a784;margin-left:24px}

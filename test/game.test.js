@@ -98,3 +98,26 @@ assert.equal(clock.dayInTurn,0);
 assert.equal(dateName(clock.turn,clock.dayInTurn),'景和23年 · 9月1日');
 setTimeSpeed(clock,4);assert.equal(clock.timeSpeed,4);assert.equal(clock.paused,false);
 setTimeSpeed(clock,0);assert.equal(clock.paused,true);
+
+// 回归：禽疫远跃 birdHops —— 初始化、远跃记录结构、旧档迁移（曾因 collectBirdHops 引用未定义 fresh 导致 ReferenceError）
+{
+  const g=newGame('飞羽');
+  assert.deepEqual(g.birdHops,[],'newGame should init birdHops');
+  g.scar=20;
+  assert.equal(dropDisease(g,'he_dong','cold_plague'),'');
+  g.power=30;
+  assert.equal(dropDisease(g,'dong_gang','avian_plague'),'');
+  g.diseaseSkills={avian_plague:['avian_wing_1','avian_wing_2','avian_wing_3']};
+  let fired=false;
+  for(let i=0;i<60&&!fired;i++){ advanceTurn(g); fired=g.birdHops.length>0; }
+  assert.ok(fired,'avian plague should record at least one long-jump hop within 60 turns');
+  const hop=g.birdHops[0];
+  assert.ok(regions.some(r=>r.id===hop.from)&&regions.some(r=>r.id===hop.to),'hop from/to must be valid region ids');
+  assert.equal(typeof hop.turn,'number');
+  // 旧档迁移：无 birdHops 字段的存档应被补上空数组
+  const oldSave={...newGame('旧档')}; delete oldSave.birdHops;
+  globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify(oldSave):null};
+  assert.deepEqual(loadGame().birdHops,[],'old saves should migrate birdHops to []');
+  delete globalThis.localStorage;
+}
+console.log('birdHops regression: hop recorded, migration ok');

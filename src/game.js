@@ -110,7 +110,7 @@ export const macroRegionStats = (state, macroId) => {
   return {population,infected,activeDiseases,outbreakCount:outbreaks.length,infectedNodeCount:infectedNodes,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
-  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])) };
+  return { version:1, name:name.trim().slice(0,12)||'长夜', turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
 }
 export function canDrop(state, regionId, diseaseId) {
   const d=disease(diseaseId);

@@ -1,6 +1,6 @@
 /* Desktop reading rhythm: one scene, one selection, one primary action. */
 [hidden]{display:none!important}
-:root{--ui-ink:#171b19;--ui-paper:#e4dac4;--ui-muted:#b6b19f;--ui-line:#b49b6838}
+:root{--ui-ink:#171817;--ui-paper:#E9E2D3;--ui-muted:#B8B0A2;--ui-line:#b49b6838}
 .game-shell{display:block;background:var(--ui-ink);color:var(--ui-paper)}
 .game-masthead{height:76px;padding:0 clamp(24px,3vw,64px);display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid var(--ui-line);background:#141816}
 .masthead-brand{font:600 27px 'Noto Serif SC',serif;letter-spacing:5px}
@@ -220,3 +220,103 @@ kbd{font:11px 'Noto Sans SC',sans-serif;border:1px solid #b8a77e44;border-radius
  .detail-panel .macro-enter{background:none;border-color:#a1986c38;padding:16px 24px 22px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ==================== v1.1 靖朝档案 UI 层 ====================
+   依据《时疠纪 UI/UX 视觉改版规范 v1.0》：现代骨架，古代皮肤。
+   短硬静动效 / 细线 / 零圆角 / 印章 / 批注 / 纸张片。 */
+
+/* —— 全局手感：短、硬、静 —— */
+button{transition:color var(--motion-fast),border-color var(--motion-fast),background var(--motion-fast),opacity var(--motion-fast)}
+button:not(:disabled):hover{box-shadow:none;transform:none;filter:none;border-color:#8f8663}
+button:not(:disabled):active{transform:translateY(1px)}
+.eyebrow{color:#98917c}
+
+/* —— 按钮三类（§11）：主=墨块纸字小切角；次=细线；幽灵=纯文字；险=朱砂线 —— */
+.primary,.secondary,.ghost,.danger{border-radius:0;letter-spacing:1px;font-weight:500;transition:color var(--motion-fast),border-color var(--motion-fast),background var(--motion-fast)}
+.primary{background:#121411;color:#EDE5D2;border:1px solid #a5976f;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);box-shadow:none}
+.primary:hover:not(:disabled){background:#1b1e1a;border-color:#c8b88c;color:#F7F1E0}
+.secondary{background:transparent;border:1px solid #5d5946;color:#c2b89e}
+.secondary:hover:not(:disabled){border-color:#98895f;color:#e2d7ba}
+.ghost{border-color:transparent;color:#a29878}
+.ghost:hover:not(:disabled){color:#e2d7ba}
+.danger{background:transparent;color:#C0503F;border:1px solid #8a3c30}
+.danger:hover:not(:disabled){background:var(--seal-red);color:var(--paper-main);border-color:var(--seal-red-bright)}
+
+/* —— 印章（§12）：Badge / Status / Warning —— */
+.stamp{position:relative;display:inline-grid;place-items:center;min-width:30px;height:30px;padding:1px 5px;border:2px solid var(--seal-red);color:#C0503F;border-radius:2px;font:700 14px/1 'Noto Serif SC',serif;letter-spacing:1px;transform:rotate(-5deg);opacity:.9;box-shadow:inset 0 0 5px #9d332840}
+.stamp-sm{min-width:24px;height:24px;font-size:12px;border-width:1.5px;transform:rotate(-4deg)}
+/* 权籍印章：如常为墨章，有动向为朱章 */
+.faction-seal{display:grid;place-items:center;width:44px;height:44px;flex:none;border:2px solid #6e6852;color:#b8b0a2;font:700 20px 'Noto Serif SC',serif;border-radius:2px;transform:rotate(-4deg);opacity:.92}
+.faction-seal.moved{border-color:var(--seal-red);color:#C0503F;box-shadow:inset 0 0 6px #9d332840}
+.faction-id{display:grid;gap:2px}
+.faction-origin{color:#8f887a;font-size:.72rem;letter-spacing:1px}
+.brief-head{display:flex;align-items:center;gap:10px}
+
+/* —— 分割线（§8）：细线 + 左侧朱砂短标 —— */
+.rule{position:relative;height:1px;background:linear-gradient(90deg,#8a806240,#8a806208);margin:14px 0}
+.rule::before{content:'';position:absolute;left:0;top:-1px;width:30px;height:3px;background:var(--seal-red);opacity:.6}
+
+/* —— 手写批注（§13）：工作人员留下的痕迹 —— */
+.annotation{font-family:'LXGW WenKai Lite','LXGW WenKai','Kaiti SC','KaiTi','STKaiti',serif;color:#a4503f;font-size:.92em;letter-spacing:.5px}
+.marginal{display:inline-block;transform:rotate(-1.2deg);border-left:2px solid #a4503f44;padding-left:8px}
+
+/* —— 纸张片（§10B）：纸只用于呈报 / 案卷 / 人物档案 —— */
+.paper,.timeline .news-body,.detail-panel .local-event{background:var(--paper-main);color:var(--text-dark);border-radius:1px;box-shadow:0 3px 14px #00000038}
+.paper .eyebrow{color:#977f52}
+
+/* —— 案卷页：呈报文书流 —— */
+.case-meta{display:grid;gap:2px;font-size:.7rem;letter-spacing:1px;color:#8f887a;padding-top:4px}
+.case-meta span{color:#6e6a5e}
+.timeline .news-body{border:0;padding:16px 20px;display:grid;gap:6px}
+.timeline .news-item:nth-child(odd) .news-body{transform:rotate(.35deg)}
+.timeline .news-item:nth-child(even) .news-body{transform:rotate(-.3deg)}
+.timeline .news-body h3{color:#25231F;margin:0}
+.timeline .news-body h3 .record-title{color:inherit;font-size:inherit;font-weight:600}
+.timeline .news-body p{color:#57534a;margin:0}
+.timeline .news-body .eyebrow{color:#977f52}
+.timeline .news-body .impact-toggle{color:#8a3c30;border:0;border-bottom:1px solid #c4a477;background:none;padding:2px 0}
+.timeline .news-body .impact{background:#efe7d5;border-left:2px solid var(--seal-red);color:#4a453c;margin-top:4px}
+.timeline .news-body .impact span{color:#8a3c30;margin-right:8px}
+.timeline .news-item::before{background:var(--seal-red);opacity:.75}
+.case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.case-note{margin:0;font-size:.86rem}
+
+/* —— 权籍 / 疫志 / 事件卡：去阴影扁平化（§37/§40） —— */
+.outbreak-card{background:#1d211e;border:1px solid #45413a;border-radius:0;box-shadow:none}
+.stat-grid>div{background:#242622;box-shadow:none;border-radius:0}
+.faction-card{box-shadow:none;border-radius:0}
+.hud-stats>div{background:#20231f;box-shadow:none;border-radius:0}
+.evolution-card{box-shadow:none}
+.toast{background:var(--paper-main);color:#25231F;border:1px solid #cbbd9c;border-radius:1px;box-shadow:0 4px 18px #00000059}
+.detail-panel .local-event{border:0;border-left:3px solid var(--seal-red);padding:10px 12px}
+.detail-panel .local-event b{color:#25231F}
+.detail-panel .local-event p{color:#57534a}
+.detail-panel .local-event small{color:#8a3c30}
+
+/* —— 疫志：病理档案头（§14） —— */
+.journal-head{display:grid;gap:8px;padding:24px 28px 0;border-bottom:0}
+.journal-meta{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.68rem;letter-spacing:2px;color:#8f887a}
+.journal-title-row{display:flex;align-items:center;gap:14px}
+.journal-title-row h3{margin:0;font-size:2.1rem;letter-spacing:3px}
+.journal-nature{font-size:.78rem;color:#b8b0a2;border:1px solid #5d5946;padding:3px 9px;letter-spacing:2px;white-space:nowrap}
+.journal-verse{margin:0;color:#c9b896;font-size:.9rem}
+.journal-traits{display:grid;grid-template-columns:1fr 1fr;gap:7px 26px;padding:14px 28px;border-bottom:1px solid #3c3a3140}
+.trait{display:grid;grid-template-columns:32px 1fr;align-items:center;gap:10px;font-size:.7rem;color:#9a9482;letter-spacing:2px}
+.trait-track{display:block;height:5px;background:#2b2d28;position:relative}
+.trait-track i{position:absolute;left:0;top:0;bottom:0;display:block;background:repeating-linear-gradient(90deg,#b8b0a2 0 5px,transparent 5px 8px);opacity:.8}
+.journal-folk{display:grid;gap:4px;margin:14px 0 0;padding:0 28px}
+.journal-folk .annotation{font-size:.98rem}
+.journal-folk small{color:#7a7568;font-size:.66rem;letter-spacing:2px}
+/* 旧英雄区不再使用 */
+.evolution-hero{display:none}
+
+/* —— 感染圈：朱砂墨迹扩散（§17），替换电子光晕 —— */
+.infection-aura{filter:url(#ink-edge)}
+.macro-infection-aura{fill:#9D3328;filter:url(#ink-edge)}
+
+/* —— HUD：旬制（§24） —— */
+.hud-date strong small{font:400 11px 'Noto Sans SC',sans-serif;color:#8f957f;margin-left:6px;letter-spacing:1px}
+@media(max-width:767px){.hud-date strong small{display:none}.journal-traits{grid-template-columns:1fr}}
+
+/* —— 圆角收敛（§39）：手机底部抽屉 10px → 2px —— */
+@media(max-width:1023px){.world-layout .detail-panel{border-radius:2px 2px 0 0}.turn-button{box-shadow:0 2px 10px #0007;border-radius:0}}

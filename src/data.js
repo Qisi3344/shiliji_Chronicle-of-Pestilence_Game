@@ -1,12 +1,12 @@
 export const diseases = [
-  { id:'cold_plague', name:'寒疫', glyph:'寒', starter:true, unlockScar:0, line:'其来如秋风，病者尚能行。', desc:'症轻而隐，善借商旅、征兵与人群往来扩散。', tags:['潜行','人流','易扩散'], growth:1, spread:1.35, visibility:.65, environment:.8 },
-  { id:'black_blight', name:'黑疽', glyph:'疽', starter:true, unlockScar:0, line:'一城尚未闻警，棺木已先不足。', desc:'爆发迅猛，善在人口密集、粮仓与军营中制造冲击。', tags:['爆发','城镇','高朝警'], growth:1.45, spread:.9, visibility:1.5, environment:1 },
-  { id:'water_woe', name:'水殇', glyph:'水', starter:true, unlockScar:0, line:'水养万人，也可送万人入土。', desc:'善借洪灾、脏乱水源、灾民聚集与河运蔓延。', tags:['环境','洪灾','河网'], growth:1.2, spread:1, visibility:1, environment:1.6 },
-  { id:'red_pox', name:'赤疮', glyph:'疮', starter:true, unlockScar:0, line:'它写在人的脸上，谁也无法装作没看见。', desc:'病征显眼，善侵入家庭、宫廷、军营等长期共居群体。', tags:['显症','封闭群体','社会记忆'], growth:1.1, spread:.85, visibility:1.35, environment:1.1 },
-  { id:'livestock_plague', name:'牲疫', glyph:'牲', starter:false, unlockScar:20, line:'人尚未病，牛马先倒在辕下。', desc:'侵入牛马猪羊与役畜，先撕裂耕作、运输、军需和肉食供应，再把饥荒与混乱还给人间。', tags:['牲畜','农田','军需'], growth:1.12, spread:1.05, visibility:.9, environment:1.25 },
-  { id:'avian_plague', name:'禽疫', glyph:'禽', starter:false, unlockScar:20, line:'城门可以关，天上的路关不住。', desc:'既能借鸡鸭鹅等家禽在村市间蔓延，也能随候鸟、水域与飞禽越过道路封锁，进行远距离跳跃。', tags:['飞禽','家禽','远跃'], growth:1.05, spread:1.22, visibility:.78, environment:1.2 },
-  { id:'blood_plague', name:'血疫', glyph:'血', starter:false, unlockScar:45, line:'伤口只是门，渴望才是它真正的路。', desc:'依附血液、伤口、战争与祭祀，使活人逐渐被嗜血、暴力与秘密供血关系扭曲。', tags:['伤口','战争','异疫'], growth:1.18, spread:.98, visibility:1.1, environment:1.05 },
-  { id:'corpse_plague', name:'尸疫', glyph:'尸', starter:false, unlockScar:75, special:true, line:'人死之后，疫仍不肯停。', desc:'特殊灾厄。尸体、战场与乱葬之地成为新的疫源；死亡不再结束传播，而会继续制造秩序崩坏。', tags:['尸体','战场','特殊灾厄'], growth:1.34, spread:1.08, visibility:1.55, environment:1.35 },
+  { id:'cold_plague', name:'寒疫', glyph:'寒', starter:true, unlockScar:0, line:'其来如秋风，病者尚能行。', desc:'症轻而隐，善借商旅、征兵与人群往来扩散。', nature:'呼吸 · 寒性',fileNo:'寒-壹',firstSeen:'景和十一年冬',folklore:'夜里有白气趴在人胸口，天亮就散。',tags:['潜行','人流','易扩散'], growth:1, spread:1.35, visibility:.65, environment:.8 },
+  { id:'black_blight', name:'黑疽', glyph:'疽', starter:true, unlockScar:0, line:'一城尚未闻警，棺木已先不足。', desc:'爆发迅猛，善在人口密集、粮仓与军营中制造冲击。', nature:'接触 · 溃坏型',fileNo:'疽-贰',firstSeen:'景和九年秋',folklore:'棺材铺的木头总是不够，买主要排到城外。',tags:['爆发','城镇','高朝警'], growth:1.45, spread:.9, visibility:1.5, environment:1 },
+  { id:'water_woe', name:'水殇', glyph:'水', starter:true, unlockScar:0, line:'水养万人，也可送万人入土。', desc:'善借洪灾、脏乱水源、灾民聚集与河运蔓延。', nature:'水饮 · 湿性',fileNo:'水-叁',firstSeen:'景和十二年夏',folklore:'喝过河水的人都梦见同一场大水。',tags:['环境','洪灾','河网'], growth:1.2, spread:1, visibility:1, environment:1.6 },
+  { id:'red_pox', name:'赤疮', glyph:'疮', starter:true, unlockScar:0, line:'它写在人的脸上，谁也无法装作没看见。', desc:'病征显眼，善侵入家庭、宫廷、军营等长期共居群体。', nature:'接触 · 显症型',fileNo:'疮-肆',firstSeen:'景和七年春',folklore:'脸上的疮痕排成星图，神婆说是天启。',tags:['显症','封闭群体','社会记忆'], growth:1.1, spread:.85, visibility:1.35, environment:1.1 },
+  { id:'livestock_plague', name:'牲疫', glyph:'牲', starter:false, unlockScar:20, line:'人尚未病，牛马先倒在辕下。', desc:'侵入牛马猪羊与役畜，先撕裂耕作、运输、军需和肉食供应，再把饥荒与混乱还给人间。', nature:'牲畜 · 传导型',fileNo:'牲-伍',firstSeen:'景和二十年秋',folklore:'牛死前会朝北跪，像在给什么磕头。',tags:['牲畜','农田','军需'], growth:1.12, spread:1.05, visibility:.9, environment:1.25 },
+  { id:'avian_plague', name:'禽疫', glyph:'禽', starter:false, unlockScar:20, line:'城门可以关，天上的路关不住。', desc:'既能借鸡鸭鹅等家禽在村市间蔓延，也能随候鸟、水域与飞禽越过道路封锁，进行远距离跳跃。', nature:'飞禽 · 远跃型',fileNo:'禽-陆',firstSeen:'景和二十二年春',folklore:'鸟群一夜全走，留下满城空巢。',tags:['飞禽','家禽','远跃'], growth:1.05, spread:1.22, visibility:.78, environment:1.2 },
+  { id:'blood_plague', name:'血疫', glyph:'血', starter:false, unlockScar:45, line:'伤口只是门，渴望才是它真正的路。', desc:'依附血液、伤口、战争与祭祀，使活人逐渐被嗜血、暴力与秘密供血关系扭曲。', nature:'血液 · 蚀志型',fileNo:'血-柒',firstSeen:'景和二十三年夏',folklore:'受伤的人不再喊疼，只是低声笑。',tags:['伤口','战争','异疫'], growth:1.18, spread:.98, visibility:1.1, environment:1.05 },
+  { id:'corpse_plague', name:'尸疫', glyph:'尸', starter:false, unlockScar:75, special:true, line:'人死之后，疫仍不肯停。', desc:'特殊灾厄。尸体、战场与乱葬之地成为新的疫源；死亡不再结束传播，而会继续制造秩序崩坏。', nature:'尸变 · 灾厄',fileNo:'尸-拾',firstSeen:'录闻，未证实',folklore:'乱葬岗的土，每夜都松一分。',tags:['尸体','战场','特殊灾厄'], growth:1.34, spread:1.08, visibility:1.55, environment:1.35 },
 ];
 
 export const diseaseSkills = {
@@ -192,12 +192,12 @@ export const events = [
 ];
 
 export const factions = [
- {id:'emperor',name:'皇帝',person:'景承炆',symbol:'玺'},
- {id:'chancellor',name:'权相',person:'裴桢',symbol:'令'},
- {id:'crown_prince',name:'储君',person:'景聿修',symbol:'东'},
- {id:'army',name:'边军',person:'霍云',symbol:'戍'},
- {id:'gentry',name:'豪强',person:'崔蘅',symbol:'庄'},
- {id:'people',name:'百姓',person:'天下庶民',symbol:'民'},
+ {id:'emperor',name:'皇帝',person:'景承炆',symbol:'玺',office:'天子',origin:'宗室 · 京师'},
+ {id:'chancellor',name:'权相',person:'裴桢',symbol:'令',office:'中书令',origin:'临津'},
+ {id:'crown_prince',name:'储君',person:'景聿修',symbol:'东',office:'皇太子',origin:'东宫'},
+ {id:'army',name:'边军',person:'霍云',symbol:'戍',office:'镇朔军节度',origin:'朔北'},
+ {id:'gentry',name:'豪强',person:'崔蘅',symbol:'庄',office:'庄园大姓',origin:'河东'},
+ {id:'people',name:'百姓',person:'天下庶民',symbol:'民',office:'编户齐民',origin:'诸州'},
 ];
 
 // 事件池：脚本事件（前 10 旬）结束后，从第 10 旬起按朝警/疫痕/疫情状态抽发。

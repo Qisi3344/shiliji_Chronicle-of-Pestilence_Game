@@ -69,7 +69,7 @@ const MAP_W=1280,MAP_H=940,MAP_X=-160,MAP_Y=-100;
 const ICON_DEFS={palace:settlement('capital'),cityGate:settlement('prefecture'),watchtower:settlement('military'),harbor:settlement('port'),granary:settlement('granary'),frontierFort:settlement('military'),grandGranary:settlement('granary'),bridgeCity:settlement('prefecture'),ferryPort:settlement('port'),riverPort:settlement('port')};
 // 一级节点（王朝级）、三级节点（功能性小节点）
 const TIER1=new Set(['jing','lin_he','bei_zhen','chang_ping','xi_du','nan_du','he_dong']);
-const TIER3=new Set(['yan_men','shang_yuan','shuang_ling','ning_zhou','yu_jiang','xi_du_ex']);
+const TIER3=new Set(['yan_men','shang_yuan','shuang_ling','ning_zhou','yu_jiang']);
 const ICON_SCALE={capital:1.65,granary:1.3,military:1.35,port:1.3,prefecture:1.2};
 const regionIconId=r=>({jing:'palace',bei_zhen:'frontierFort',chang_ping:'grandGranary',xi_du:'ferryPort',nan_du:'riverPort',lin_he:'bridgeCity'}[r.id]||({capital:'palace',prefecture:'cityGate',military:'watchtower',port:'harbor',granary:'granary'}[r.type]));
 // 事件类别 → 社会状态符号（方案第 8 节，每节点至多一个，按这些优先级取第一个）
@@ -149,7 +149,10 @@ function birdHops(){if(!stateUI.birdHops?.length)return;
  }
  stateUI.birdHops=[];
 }
-function hud(){return `<div class="hud"><div class="hud-date"><span class="eyebrow">${esc(game.name)}之疫 · ${stageName(game.scar)}</span><strong>${dateName(game.turn,game.dayInTurn||0)}</strong></div><div class="hud-stats"><div><span>疫势</span><strong>${game.power}</strong></div><div><span>疫痕</span><strong>${game.scar}<small> / ${[20,45,75,110].find(x=>x>game.scar)||'终'}</small></strong></div><div class="alert"><span>朝警 · ${alertName(game.alert)}</span><strong>${game.alert}<small> / 100</small></strong></div></div>${stateUI.tab!=='world'?'<span class="reading-note">阅卷中 · 时日暂歇</span>':''}<div class="time-controls" ${stateUI.tab!=='world'?'hidden':''} aria-label="时间流速"><button data-action="speed" data-value="0" class="${game.paused?'active':''}" title="暂停">Ⅱ</button>${[1,2,4].map(n=>`<button data-action="speed" data-value="${n}" class="${!game.paused&&game.timeSpeed===n?'active':''}">${n}×</button>`).join('')}</div><button class="plain hud-menu" data-action="pause" aria-label="暂停与设置">☰</button></div>`;}
+function hudBody(){return `<div class="hud-date"><span class="eyebrow">${esc(game.name)}之疫 · ${stageName(game.scar)}</span><strong>${dateName(game.turn,game.dayInTurn||0)}</strong></div><div class="hud-stats"><div><span>疫势</span><strong>${game.power}</strong></div><div><span>疫痕</span><strong>${game.scar}<small> / ${[20,45,75,110].find(x=>x>game.scar)||'终'}</small></strong></div><div class="alert"><span>朝警 · ${alertName(game.alert)}</span><strong>${game.alert}<small> / 100</small></strong></div></div>${stateUI.tab!=='world'?'<span class="reading-note">阅卷中 · 时日暂歇</span>':''}<div class="time-controls" ${stateUI.tab!=='world'?'hidden':''} aria-label="时间流速"><button data-action="speed" data-value="0" class="${game.paused?'active':''}" title="暂停">Ⅱ</button>${[1,2,4].map(n=>`<button data-action="speed" data-value="${n}" class="${!game.paused&&game.timeSpeed===n?'active':''}">${n}×</button>`).join('')}</div><button class="plain hud-menu" data-action="pause" aria-label="暂停与设置">☰</button>`;}
+function hud(){return `<div class="hud">${hudBody()}</div>`;}
+// 日内推进只原位刷新 HUD 数字，不重建整页——保住地图动画、滚动位置、焦点与展开的下拉框。
+function updateHud(){if(!game||stateUI.route!=='/game')return;for(const el of document.querySelectorAll('.hud'))el.innerHTML=hudBody();}
 function nav(){return `<nav class="game-nav" aria-label="主导航">${navs.map(([id,label,icon])=>`<button data-tab="${id}" class="${stateUI.tab===id?'active':''}" aria-current="${stateUI.tab===id?'page':'false'}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join('')}</nav>`;}
 function mapPanel(){const macro=one(macroRegions,stateUI.activeMacroRegion),realm=stateUI.mapMode==='realm';return `<section class="map-panel"><div class="map-heading"><div>${realm?'<span class="eyebrow">天下舆图 / THE REALM</span>':`<button class="map-back" data-action="return-realm">← 返回天下</button><span class="map-crumb">天下　›　${macro.name}</span>`}<h2>${realm?(game.drops===0?'先观大势，再择落点。':'靖朝天下'):`${macro.name}区域舆图`}</h2></div><div class="map-tools"><button data-action="zoom-out" aria-label="缩小地图">−</button><button data-action="zoom-in" aria-label="放大地图">＋</button><button data-action="zoom-reset" aria-label="重置地图">⌖</button></div></div><div class="map-stage" id="map-stage">${mapArt()}</div><div class="map-compass" aria-hidden="true"><svg viewBox="0 0 64 64" width="58" height="58"><circle cx="32" cy="32" r="30" fill="#10141acc" stroke="#b49b62" stroke-width="1.5"/><circle cx="32" cy="32" r="25.5" fill="none" stroke="#b49b62" stroke-width=".75" opacity=".55"/><path d="M32 20 L36 32 L32 44 L28 32 Z" fill="#d8c093"/><path d="M32 20 L36 32 L28 32 Z" fill="#a8443a"/><path d="M20 32 L32 28.5 L44 32 L32 35.5 Z" fill="#8a7a58" opacity=".85"/><circle cx="32" cy="32" r="3.2" fill="#10141a" stroke="#d8c093" stroke-width="1.2"/><text x="32" y="15" text-anchor="middle" font-size="8.5" fill="#e8d9b8" font-family="'Noto Serif SC',serif">北</text><text x="32" y="56" text-anchor="middle" font-size="8.5" fill="#a89a7c" font-family="'Noto Serif SC',serif">南</text><text x="52" y="35" text-anchor="middle" font-size="7.5" fill="#a89a7c" font-family="'Noto Serif SC',serif">东</text><text x="12" y="35" text-anchor="middle" font-size="7.5" fill="#a89a7c" font-family="'Noto Serif SC',serif">西</text></svg></div><div class="map-foot"><span><i class="legend-dot sick"></i>${realm?'染疫区域':'疫区'} ${realm?macroRegions.filter(m=>macroRegionStats(game,m.id).infected).length:new Set(game.outbreaks.filter(o=>macro.memberIds.includes(o.regionId)).map(o=>o.regionId)).size}</span><span><i class="legend-dot event"></i>大事 ${realm?activeEvents(game).length:macroRegionEvents(game,macro.id).length}</span><span>${realm?'点选区域 · 查看天下大势':'拖动舆图 · 点选州府'}</span></div></section>`;}
 function outbreakCard(o){const d=one(diseases,o.diseaseId),hide=o.hideUntil>game.turn,available=activeEvents(game,o.regionId).filter(e=>e.borrowable);
@@ -203,6 +206,17 @@ function news(){const categories=[['all','全部'],['politics','朝廷'],['disas
 function court(){return `<div class="content-page court-page"><div class="content-heading"><span class="eyebrow">靖朝 / THE SIX PILLARS</span><h2>王朝</h2><p>六方各有所求，天下由此而动。</p></div><div class="collection-layout"><nav class="collection-index" aria-label="选择势力">${factions.map(f=>`<button data-action="select-faction" data-id="${f.id}" aria-pressed="${stateUI.courtFaction===f.id}"><span class="index-glyph">${f.symbol}</span><span>${f.name}<small>${game.factionActions[f.id].status}</small></span><span class="index-arrow">›</span></button>`).join('')}</nav><div class="court-grid">${factions.map(f=>{const a=game.factionActions[f.id];return `<article class="faction-card" ${stateUI.courtFaction===f.id?'':'hidden'}><div class="faction-top"><span class="faction-glyph">${f.symbol}</span><div><span class="eyebrow">${f.name}</span><h3>${f.person}</h3></div>${pill(a.status)}</div><span class="eyebrow">本旬动向</span><p class="action-copy">${a.action}</p><div class="faction-impact"><span>对天下的影响</span><strong>${a.impact}</strong></div><p class="court-note">六方每旬自行行动。你可观其势，无法号令他们。</p></article>`;}).join('')}</div></div></div>`;}
 function turnBrief(){const r=game?.lastReport;if(!r||stateUI.briefTurn!==r.turn)return '';return `<aside class="turn-brief"><div><span class="eyebrow">旬报 · ${periodName(r.turn)}</span><strong>天下又变了。</strong><p>${r.headlines.slice(0,2).map(esc).join(' · ')}</p></div><div class="turn-brief-stats"><span>新疫地 <b>${r.newRegions}</b></span><span>疫势 <b>${r.power>=0?'+':''}${r.power}</b></span><span>疫痕 <b>+${r.scar}</b></span><span>朝警 <b>${r.alert>=0?'+':''}${r.alert}</b></span></div><button data-tab="news">阅诏闻 →</button><button class="brief-close plain" data-action="dismiss-brief" aria-label="收起旬报">×</button></aside>`;}
 function gamePage(){if(!game)return home();return `<div class="game-shell ${stateUI.tab==='world'?'on-world':''}"><header class="game-masthead"><div class="masthead-brand">时疠纪<small>CHRONICLE OF PESTILENCE</small></div><div class="desktop-navigation">${nav()}</div><button class="plain journal-button" data-action="pause">卷宗 <kbd>Esc</kbd></button></header><div class="session-bar">${hud()}</div><main class="main-area">${stateUI.tab==='world'?world():stateUI.tab==='codex'?codex():stateUI.tab==='news'?news():court()}</main><div class="mobile-nav">${nav()}</div>${stateUI.tab==='world'?turnBrief():''}${stateUI.tab==='world'&&stateUI.detailOpen?'<div class="sheet-shade" data-action="close-detail"></div>':''}</div>`;}
+const ENDING_DEFS={
+ yi_mie:{name:'疫灭',tone:'lose',ep:'朝廷悬壶四处，逐户查疫，城门重开，商旅复行。此疫终究无处生根。史官后来将这一年记作：某年某月，疫绝。'},
+ da_yi:{name:'大疫',tone:'win',ep:'州郡相连，棺木相望，史官落笔只用了两个字：大疫。三年乃止，止时天下已换了模样。'},
+ shi_guo:{name:'蚀国',tone:'win',ep:'仓廪空，驿路断，州县文书积压如山。王朝还在，只是再也不能号令天下。'},
+ yi_ding:{name:'易鼎',tone:'win',ep:'京师先乱，勤王之师四散。旧朝的旗从城楼上降下时，疫仍在人间。'},
+};
+function endingPage(){const e=game.ending,def=ENDING_DEFS[e.id]||ENDING_DEFS.da_yi;
+ const infected=game.outbreaks.reduce((n,o)=>n+o.infected,0),regionsHit=new Set(game.outbreaks.map(o=>o.regionId)).size,kinds=new Set(game.outbreaks.map(o=>o.diseaseId)).size;
+ const lastNews=game.log.slice(0,3);
+ return `<div class="ending-page"><div class="ending-seal ${def.tone}">终</div><span class="eyebrow">卷终 · ${periodName(game.turn)}</span><h1>${def.name}</h1><p class="ending-ep">${def.ep}</p><p class="ending-ep-muted">民间则称它为——<strong>「${esc(game.name)}之疫」。</strong></p><div class="ending-stats"><span>历时尚存<b>${game.turn} 旬</b></span><span>疫痕<b>${game.scar}</b></span><span>朝警<b>${game.alert} · ${alertName(game.alert)}</b></span><span>病者估计<b>${number(infected)}</b></span><span>染疫地点<b>${regionsHit} 处</b></span><span>疫种<b>${kinds} 种</b></span></div><div class="ending-actions">${button('new','再开一世 →','primary')}${button('archive','档案','secondary')}${button('home','返回卷首','ghost')}</div><div class="ending-news"><span class="eyebrow">卷末诏闻</span>${lastNews.map(n=>`<p><b>${esc(n.title)}</b> ${esc(n.text)}</p>`).join('')}</div></div>`;
+}
 function archive(){return pageFrame('档案','只有这一世的记录。新局会覆写当前存档。',game?`<div class="archive-card"><span class="eyebrow">一世 / ${stageName(game.scar)}</span><h2>${esc(game.name)}之疫</h2><p>${periodName(game.turn)}</p><div class="archive-stats"><span>活跃疫病 ${new Set(game.outbreaks.map(o=>o.diseaseId)).size}</span><span>疫痕 ${game.scar}</span><span>朝警 ${alertName(game.alert)}</span><span>染疫地区 ${new Set(game.outbreaks.map(o=>o.regionId)).size}</span></div><blockquote>${esc(game.log[0]?.text||'史书尚未记下此疫。')}</blockquote>${button('continue','继续此世 →','primary')}</div>`:'<div class="empty-card">尚无一世之疫。<button class="primary" data-action="new">开新局 →</button></div>',stateUI.returnRoute);}
 function settingsPage(){return pageFrame('设置','这卷史书的阅读方式。',`<div class="settings-list"><label><span><strong>较大文字</strong><small>放大正文与操作文字</small></span><input type="checkbox" data-setting="largeText" ${settings.largeText?'checked':''}></label><label><span><strong>减少动效</strong><small>减弱地图与界面过渡</small></span><input type="checkbox" data-setting="lessMotion" ${settings.lessMotion?'checked':''}></label><div class="settings-danger"><strong>当前存档</strong><p>清除后无法恢复。</p>${button('reset','清除存档','danger',game?'':'disabled')}</div></div>`,stateUI.returnRoute);}
 function overlay(){if(!stateUI.modal)return '';
@@ -220,7 +234,7 @@ function render(){
  let route=stateUI.route;
  if(route==='/game'&&!game)route='/';
  if(route==='/game'&&game&&!game.firstDisease)route='/disease-select';
- const body=route==='/new'?identity():route==='/name'?namePage():route==='/prologue'?prologuePage():route==='/disease-select'?diseasePage():route==='/game'?gamePage():route==='/archive'?archive():route==='/settings'?settingsPage():home();
+ const body=route==='/new'?identity():route==='/name'?namePage():route==='/prologue'?prologuePage():route==='/disease-select'?diseasePage():route==='/game'?(game.ending?endingPage():gamePage()):route==='/archive'?archive():route==='/settings'?settingsPage():home();
  app.innerHTML=body+overlay()+(stateUI.toast?`<div class="toast" role="status">${esc(stateUI.toast)}</div>`:'');
  for(const el of app.querySelectorAll('details[data-disclosure]'))el.open=!!stateUI.disclosures[el.dataset.disclosure];
  birdHops();
@@ -228,8 +242,10 @@ function render(){
  const restore=focusSelector&&Array.from(app.querySelectorAll(focusSelector)).find(el=>el.getClientRects().length&&(!dialog||dialog.contains(el)));
  (restore||dialog?.querySelector('button'))?.focus({preventScroll:true});
  document.title=`${route==='/game'&&game?`${game.name}之疫 · `:''}时疠纪 · Chronicle of Pestilence`;
- window.render_game_to_text=()=>JSON.stringify({coordinateSystem:'SVG origin top-left, x right, y down; 900x680 map',route:stateUI.route,tab:stateUI.tab,mapMode:stateUI.mapMode,activeMacroRegion:stateUI.activeMacroRegion,selected:stateUI.selected,selectedDisease:stateUI.dropChoice||game?.firstDisease||null,visibleRegions:stateUI.mapMode==='region'?one(macroRegions,stateUI.activeMacroRegion)?.memberIds:macroRegions.map(m=>m.id),modal:stateUI.modal,turn:game?.turn,dayInTurn:game?.dayInTurn,power:game?.power,scar:game?.scar,alert:game?.alert,drops:game?.drops,outbreaks:game?.outbreaks?.map(o=>({region:o.regionId,disease:o.diseaseId,infected:o.infected,stance:o.stance})),activeEvents:game?activeEvents(game).map(e=>e.id):[]});
- window.advanceTime=()=>{if(game){const report=advanceDay(game);saveGame(game);if(report){stateUI.briefTurn=report.turn;}render();}};
+ if(import.meta.env.DEV){
+  window.render_game_to_text=()=>JSON.stringify({coordinateSystem:'SVG origin top-left, x right, y down; 900x680 map',route:stateUI.route,tab:stateUI.tab,mapMode:stateUI.mapMode,activeMacroRegion:stateUI.activeMacroRegion,selected:stateUI.selected,selectedDisease:stateUI.dropChoice||game?.firstDisease||null,visibleRegions:stateUI.mapMode==='region'?one(macroRegions,stateUI.activeMacroRegion)?.memberIds:macroRegions.map(m=>m.id),modal:stateUI.modal,turn:game?.turn,dayInTurn:game?.dayInTurn,power:game?.power,scar:game?.scar,alert:game?.alert,drops:game?.drops,ending:game?.ending?.id||null,outbreaks:game?.outbreaks?.map(o=>({region:o.regionId,disease:o.diseaseId,infected:o.infected,stance:o.stance})),activeEvents:game?activeEvents(game).map(e=>e.id):[]});
+  window.advanceTime=()=>{if(game&&!game.ending){const report=advanceDay(game);saveGame(game);if(report){stateUI.briefTurn=report.turn;}render();}};
+ }
 }
 function zoom(factor){const box=stateUI.map,cx=box.x+box.w/2,cy=box.y+box.h/2,w=Math.max(280,Math.min(MAP_W,box.w*factor)),h=Math.max(260,Math.min(MAP_H,box.h*factor));stateUI.map={x:Math.max(MAP_X,Math.min(MAP_X+MAP_W-w,cx-w/2)),y:Math.max(MAP_Y,Math.min(MAP_Y+MAP_H-h,cy-h/2)),w,h};render();}
 app.addEventListener('submit',e=>{if(e.target.id!=='name-form')return;e.preventDefault();const name=e.target.elements.name.value.trim();if(!name)return toast('请为此世之疫命名');game=newGame(name);saveGame(game);stateUI.prologue=0;go('/prologue');});
@@ -272,16 +288,18 @@ app.addEventListener('click',e=>{
  else if(action==='jump-region'){stateUI.activeMacroRegion=macroForRegion(id)?.id||null;stateUI.mapMode=stateUI.activeMacroRegion?'region':'realm';stateUI.map=defaultMap();stateUI.selected=id;stateUI.tab='world';stateUI.detailOpen=true;render();}
  else if(action==='toggle-log'){stateUI.logOpen=stateUI.logOpen===Number(id)?null:Number(id);render();}
 });
+// 禽疫远跃飞矢：把 engine 记录的 hops 消费到 UI 队列（至多 5 条，其余为陈旧记录直接丢弃），并立即在现存 SVG 上补播，避免整页重建。
 function collectBirdHops(){
   if(!game?.birdHops?.length) return;
-  // game.birdHops persists across saves; only animate hops not shown yet.
-  const fresh=game.birdHops.filter(h=>!h.shown);
-  for(const h of fresh) h.shown=true;
-  if(fresh.length&&stateUI.route==='/game'&&stateUI.tab==='world') stateUI.birdHops=fresh.map(h=>({from:h.from,to:h.to}));
+  if(stateUI.route==='/game'&&stateUI.tab==='world'){
+    stateUI.birdHops=game.birdHops.splice(0,5);
+    game.birdHops.length=0;
+    birdHops();
+  }
 }
 function tickClock(){
  const now=Date.now(),elapsed=Math.min(1000,now-clockLast);clockLast=now;
- if(!game||stateUI.route!=='/game'||game.drops===0||game.paused||stateUI.modal||stateUI.tab!=='world')return;
+ if(!game||stateUI.route!=='/game'||game.ending||game.drops===0||game.paused||stateUI.modal||stateUI.tab!=='world')return;
  clockBank=Math.min(GAME_DAY_MS*2,clockBank+elapsed*(game.timeSpeed||1));
  if(clockBank<GAME_DAY_MS)return;
  clockBank-=GAME_DAY_MS;
@@ -290,9 +308,9 @@ function tickClock(){
  collectBirdHops();
  if(report){
    stateUI.briefTurn=report.turn;
-   setTimeout(()=>{if(stateUI.briefTurn===report.turn){stateUI.briefTurn=null;render();}},6500);
- }
- render();
+   render();
+   setTimeout(()=>{if(stateUI.briefTurn!==report.turn)return;stateUI.briefTurn=null;document.querySelector('.turn-brief')?.remove();},6500);
+ } else updateHud();
 }
 setInterval(tickClock,250);
 

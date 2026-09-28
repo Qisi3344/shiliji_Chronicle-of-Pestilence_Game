@@ -199,3 +199,20 @@ export const factions = [
  {id:'gentry',name:'豪强',person:'崔蘅',symbol:'庄'},
  {id:'people',name:'百姓',person:'天下庶民',symbol:'民'},
 ];
+
+// 事件池：脚本事件（前 10 旬）结束后，从第 10 旬起按朝警/疫痕/疫情状态抽发。
+// pick 决定事件落在哪些州府：outbreak=染疫之地，worst=最重疫区（前三），disaster/military/capital/port=按类型，any=任意。
+export const poolEvents = [
+ {id:'pool_grain',duration:3,title:'粮价腾贵',category:'society',pick:'disaster',count:2,weight:3,text:'粮商闭籴，斗米千钱，饥民聚于仓场之外。',effect:'秩序下降，人群流动增加。',order:-8,mobility:10,spread:.14},
+ {id:'pool_refugees',duration:3,title:'流民就食',category:'population',pick:'outbreak',count:2,weight:3,needOutbreak:true,text:'疫区之民携老幼出逃，沿官道就食他州。',effect:'官道流动大增，疫病更易外溢。',mobility:20,spread:.22,cost:4,borrowable:true},
+ {id:'pool_close',duration:2,title:'邻州断道',category:'military',pick:'outbreak',count:1,weight:2,needOutbreak:true,minAlert:40,text:'邻州惧疫，发丁夫断绝官道，商旅绕行山径。',effect:'疫区对外流动受阻，官府防务收紧。',mobility:-30,governance:6},
+ {id:'pool_relief',duration:3,title:'义仓放粮',category:'politics',pick:'disaster',count:1,weight:2,text:'乡绅开义仓施粥，四方饥民闻风而至。',effect:'治理改善，人群聚集。',governance:10,mobility:14,spread:.12,cost:3,borrowable:true},
+ {id:'pool_temple',duration:3,title:'寺观收容',category:'society',pick:'outbreak',count:1,weight:2,needOutbreak:true,text:'僧道设粥棚收容病者，香火昼夜不绝。',effect:'治理略增，人群聚集。',governance:6,spread:.1,cost:3,borrowable:true},
+ {id:'pool_riot',duration:2,title:'市集惊乱',category:'society',pick:'worst',count:1,weight:2,needOutbreak:true,minAlert:30,text:'讹言四起，市集为之罢散，乱民相率掠夺。',effect:'秩序大跌，流动上升。',order:-12,mobility:12},
+ {id:'pool_army',duration:2,title:'军中疫问',category:'military',pick:'military',count:1,weight:2,text:'营中病者日众，监军御史驰驿入奏。',effect:'军镇秩序下降，朝警上升。',order:-12,alert:3},
+ {id:'pool_canal',duration:2,title:'漕船滞留',category:'politics',pick:'port',count:1,weight:2,text:'漕船因疫不得靠岸，粮运积压河岸。',effect:'港口治理下降，流动受阻。',governance:-6,mobility:-10},
+ {id:'pool_locust',duration:3,title:'蝗过三州',category:'disaster',pick:'any',count:3,weight:2,minScar:20,text:'飞蝗蔽日，过处田稼殆尽。',effect:'灾患大增。',disaster:16,spread:.1},
+ {id:'pool_dike',duration:3,title:'河堤复决',category:'disaster',pick:'disaster',count:1,weight:2,text:'秋汛复至，残堤再决，积水连村。',effect:'灾患大增，秩序下降。',disaster:18,order:-6},
+ {id:'pool_report',duration:2,title:'密报入京',category:'politics',pick:'capital',count:1,weight:2,minAlert:20,maxAlert:70,text:'御史密奏地方疫实，与州府申报相矛盾。',effect:'朝警上升。',alert:6},
+ {id:'pool_burn',duration:2,title:'诏焚疫区',category:'epidemic',pick:'worst',count:1,weight:1,needOutbreak:true,minAlert:60,text:'朝廷下诏焚疫区庐舍，逐病者于野。',effect:'流动骤降，秩序受损。',mobility:-40,order:-8,alert:2},
+];

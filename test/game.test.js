@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { diseases, events, macroRegions, regions } from '../src/data.js';
-import { SAVE_KEY, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
+import { SAVE_KEY, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
 
 assert.equal(diseases.length,8);
 assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
@@ -13,6 +13,7 @@ assert.deepEqual(loadGame().seenProvinces,['朔北','河东郡','临津州','洛
 delete globalThis.localStorage;
 
 const game=newGame('长夜');
+game.seed=123;
 assert.equal(periodName(0),'景和23年 · 8月下旬');
 assert.equal(dropDisease(game,'he_dong','cold_plague'),'');
 assert.equal(game.power,0);
@@ -121,3 +122,50 @@ setTimeSpeed(clock,0);assert.equal(clock.paused,true);
   delete globalThis.localStorage;
 }
 console.log('birdHops regression: hop recorded, migration ok');
+
+// v0.5：per-run 种子 —— 同种子两局逐旬完全一致，不同种子走出不同轨迹。
+const seedA=newGame('甲'),seedB=newGame('乙'),seedC=newGame('丙');
+for(const g of [seedA,seedB,seedC]){g.seed=g===seedC?778:777;dropDisease(g,'he_dong','cold_plague');}
+for(let i=0;i<8;i++){advanceTurn(seedA);advanceTurn(seedB);advanceTurn(seedC);}
+assert.deepEqual(seedA.outbreaks.map(o=>[o.regionId,o.infected,Math.round(o.localAwareness)]),seedB.outbreaks.map(o=>[o.regionId,o.infected,Math.round(o.localAwareness)]));
+assert.notDeepEqual(seedA.outbreaks.map(o=>[o.regionId,o.infected]),seedC.outbreaks.map(o=>[o.regionId,o.infected]));
+
+// v0.5：官府扑疫 —— 高察觉 + 高治理之地，疫势被持续压制。
+const sup=newGame('扑疫'),ctrl=newGame('对照');
+for(const g of [sup,ctrl]){g.seed=42;dropDisease(g,'qing_xi','black_blight');g.outbreaks[0].infected=5000;g.outbreaks[0].stance='surge';}
+sup.outbreaks[0].localAwareness=85;
+for(let i=0;i<5;i++){advanceTurn(sup);advanceTurn(ctrl);}
+assert.ok(sup.outbreaks.length&&ctrl.outbreaks.length,'neither side should be fully extinguished here');
+assert.ok(sup.outbreaks[0].infected<ctrl.outbreaks[0].infected,'awareness+governance should suppress growth');
+
+// v0.5：重疫蚀地 —— 过半人口染疫时，当地秩序开始不可逆衰退。
+const dr=newGame('蚀地');
+dropDisease(dr,'he_dong','cold_plague');
+dr.outbreaks[0].infected=180000;
+dr.outbreaks[0].stance='spread';
+const orderBefore=regionStats(dr,'he_dong').order;
+advanceTurn(dr);
+assert.ok(regionStats(dr,'he_dong').order<orderBefore,'heavy infection should erode local order');
+assert.ok(dr.regionDrift.he_dong.order<0);
+
+// v0.5：疫灭终局 —— 疫源尽灭且再无力降疫，一世就此收卷。
+const end=newGame('疫灭测试');
+dropDisease(end,'qing_xi','black_blight');
+end.outbreaks[0].infected=6;
+end.outbreaks[0].localAwareness=85;
+end.drops=4;end.scar=80;end.power=0;
+assert.equal(advanceTurn(end),null);
+assert.equal(end.ending.id,'yi_mie');
+assert.equal(end.outbreaks.length,0);
+assert.equal(advanceTurn(end),null,'ended games must not keep simulating');
+
+// v0.5：事件池 —— 脚本事件结束后（第 10 旬起），天下大事继续发生。
+const poolGame=newGame('事件池');
+poolGame.seed=99;
+dropDisease(poolGame,'he_dong','cold_plague');
+poolGame.turn=9;poolGame.power=50;
+let sawPool=false;
+for(let i=0;i<14;i++){advanceTurn(poolGame);if(poolGame.poolEvents.length)sawPool=true;}
+assert.ok(sawPool,'pool events should fire after scheduled events end');
+assert.ok(poolGame.poolEvents.every(i=>i.pid&&i.regionIds.length),'pool instances should be region-bound');
+console.log(`PASS v0.5: seed/suppression/drift/ending/pool verified, pool fired ${poolGame.poolEvents.length} active`);

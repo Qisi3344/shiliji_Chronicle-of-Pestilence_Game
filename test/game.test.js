@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { diseases, events, macroRegions, regions } from '../src/data.js';
-import { SAVE_KEY, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill } from '../src/game.js';
+import { SAVE_KEY, SAVE_SCHEMA_VERSION, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel } from '../src/game.js';
 
 assert.equal(diseases.length,8);
 assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
@@ -169,3 +169,25 @@ for(let i=0;i<14;i++){advanceTurn(poolGame);if(poolGame.poolEvents.length)sawPoo
 assert.ok(sawPool,'pool events should fire after scheduled events end');
 assert.ok(poolGame.poolEvents.every(i=>i.pid&&i.regionIds.length),'pool instances should be region-bound');
 console.log(`PASS v0.5: seed/suppression/drift/ending/pool verified, pool fired ${poolGame.poolEvents.length} active`);
+
+// v0.6：奏报由真实疫情确定性生成；压奏只改变京师认知，密报可以纠偏。
+const reportA=newGame('奏报甲'),reportB=newGame('奏报乙');
+for(const g of [reportA,reportB]) {g.seed=314;dropDisease(g,'he_dong','cold_plague');g.outbreaks[0].infected=4000;g.outbreaks[0].localAwareness=55;updateIntel(g);}
+assert.deepEqual(reportA.intel,reportB.intel);
+const unsuppressed=structuredClone(reportA),suppressedReport=structuredClone(reportA);
+unsuppressed.turn=suppressedReport.turn=0;
+suppressedReport.factionActions.chancellor.status='压住奏折';
+updateIntel(unsuppressed);updateIntel(suppressedReport);
+assert.equal(suppressedReport.outbreaks[0].infected,unsuppressed.outbreaks[0].infected);
+assert.ok(suppressedReport.intel.he_dong.centralKnownInfected<unsuppressed.intel.he_dong.centralKnownInfected);
+suppressedReport.poolEvents=[{pid:'pool_report',turn:3,duration:1}];
+suppressedReport.turn=2;
+updateIntel(suppressedReport);
+assert.ok(suppressedReport.intel.he_dong.centralKnownInfected>=3600);
+assert.equal(suppressedReport.intel.he_dong.source,'secret');
+assert.equal(reportA.intel.jing.centralKnownInfected,0);
+const legacy=newGame('旧奏报');legacy.version=1;delete legacy.intel;
+globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify(legacy):null};
+assert.equal(loadGame().version,SAVE_SCHEMA_VERSION);
+assert.equal(loadGame().intel.he_dong.reportedInfected,0);
+delete globalThis.localStorage;

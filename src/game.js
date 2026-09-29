@@ -1,6 +1,7 @@
 import { diseaseSkills, diseases, events, factions, macroRegions, poolEvents, regions, roads, waterways } from './data.js';
 
 export const SAVE_KEY = 'yi-save-v01';
+export const SAVE_SCHEMA_VERSION = 2;
 const clamp = (n, a=0, b=100) => Math.max(a, Math.min(b, n));
 const byId = id => regions.find(r => r.id === id);
 const disease = id => diseases.find(d => d.id === id);
@@ -55,6 +56,40 @@ const gainDiseaseXP=(state,diseaseId,amount=1)=>{
   state.diseaseXP[diseaseId]=(state.diseaseXP[diseaseId]||0)+amount;
 };
 const hash = value => { let h=2166136261; for (const c of value) h=Math.imul(h ^ c.charCodeAt(0),16777619); return (h >>> 0) / 4294967295; };
+const emptyIntel = () => ({reportedInfected:0,centralKnownInfected:0,reliability:100,delay:1,source:'official',updatedTurn:0,pendingReportedInfected:0});
+export function ensureIntel(state) {
+  state.intel ||= {};
+  for (const r of regions) state.intel[r.id]={...emptyIntel(),...state.intel[r.id]};
+  return state.intel;
+}
+const trueInfected = (state,id) => regionOutbreaks(state,id).reduce((n,o)=>n+o.infected,0);
+export function updateIntel(state) {
+  const intel=ensureIntel(state), nextTurn=state.turn+1;
+  const worst=regions.reduce((best,r)=>trueInfected(state,r.id)>trueInfected(state,best.id)?r:best,regions[0]);
+  const chancellorTarget=state.factionActions?.chancellor?.status==='压住奏折'?worst.id:null;
+  const suppressEvent=events.find(e=>e.id==='suppress'&&e.turn<=nextTurn&&nextTurn<e.turn+e.duration);
+  for (const r of regions) {
+    const item=intel[r.id], real=trueInfected(state,r.id), awareness=Math.max(0,...regionOutbreaks(state,r.id).map(o=>o.localAwareness));
+    const suppressed=r.id===chancellorTarget||suppressEvent?.regionIds.includes(r.id);
+    const stats=regionStats(state,r.id);
+    const ratio=clamp(.25+awareness*.006-stats.governance*.001+(stats.order<30?.1:0),.08,.95);
+    const jitter=.9+hash(`report|${state.seed}|${nextTurn}|${r.id}`)*.2;
+    const previous=item.pendingReportedInfected;
+    item.centralKnownInfected=Math.max(0,Math.round((suppressed?previous*.35:previous)||0));
+    item.reportedInfected=real?Math.max(1,Math.round(real*ratio*jitter)):0;
+    item.pendingReportedInfected=item.reportedInfected;
+    item.reliability=real?Math.round(clamp(100-Math.abs(item.reportedInfected-real)/real*100)):100;
+    item.source='official'; item.updatedTurn=nextTurn;
+  }
+  if ((state.poolEvents||[]).some(e=>e.pid==='pool_report'&&e.turn===nextTurn)) {
+    const item=intel[worst.id], real=trueInfected(state,worst.id);
+    if (real) {item.centralKnownInfected=Math.max(item.centralKnownInfected,Math.round(real*.9));item.source='secret';}
+  }
+  if (trueInfected(state,worst.id)) {
+    const item=intel[worst.id];
+    state.log.unshift({turn:nextTurn,category:'politics',title:`${worst.name}疫报`,text:`地方奏：病者${item.reportedInfected}人；京师所知${item.centralKnownInfected}人。`,effect:`疫所见：实约${trueInfected(state,worst.id)}人 · 奏报${item.reliability<35?'严重失真':item.reliability<70?'明显失真':'大致可信'}`,regionIds:[worst.id]});
+  }
+}
 export const periodName = turn => {
   const m=7+Math.floor((turn+2)/3), year=23+Math.floor(m/12), month=m%12+1;
   return `景和${year}年 · ${month}月${['上旬','中旬','下旬'][(turn+2)%3]}`;
@@ -111,7 +146,7 @@ export const macroRegionStats = (state, macroId) => {
   return {population,infected,activeDiseases,outbreakCount:outbreaks.length,infectedNodeCount:infectedNodes,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
-  return { version:1, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
+  return { version:SAVE_SCHEMA_VERSION, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, intel:Object.fromEntries(regions.map(r=>[r.id,emptyIntel()])), log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
 }
 export function canDrop(state, regionId, diseaseId) {
   const d=disease(diseaseId);
@@ -380,6 +415,7 @@ export function advanceTurn(state) {
     state.log.unshift({turn:state.turn+1,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds});
   }
   firePoolEvents(state,notes);
+  updateIntel(state);
   let alertGain=state.outbreaks.reduce((n,o)=>n+({dormant:0,spread:1,surge:3}[o.stance])*(o.hideUntil>state.turn?.5:1),0);
   if (state.outbreaks.some(o=>o.regionId==='jing'&&o.infected>=10)) alertGain+=2;
   if (!fresh.length && !surged) alertGain-=1;
@@ -413,6 +449,6 @@ export function setTimeSpeed(state,speed) {
   if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!(s?.version===1&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

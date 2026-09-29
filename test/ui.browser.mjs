@@ -65,6 +65,7 @@ const run=async(viewport,label)=>{
   await page.screenshot({path:`output/${label}-map.png`,fullPage:true});
   await page.locator('[data-region="he_dong"]').click();
   assert.ok(await page.locator('.intel-note').isVisible(),'local report is visible in the dossier');
+  assert.equal(await page.locator('.ability-control').count(),0,'locked ability has no action entry');
   await page.locator('details[data-disclosure^="spread-"] summary').first().click();
   assert.ok((await page.locator('details[data-disclosure^="spread-"]').first().textContent()).includes('本地增长'));
   await page.locator('[data-action="stance"][data-value="spread"]').click();
@@ -143,6 +144,15 @@ const run=async(viewport,label)=>{
   assert.equal(state.mapMode,'realm');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
   assert.equal(overflow,false,`${label} horizontal overflow`);
+  await page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('yi-save-v01'));saved.diseaseSkills.cold_plague=['cold_roads_1'];saved.power=10;localStorage.setItem('yi-save-v01',JSON.stringify(saved));});
+  await page.reload();
+  await page.locator('[data-macro="hedong"]').click();
+  await page.locator('[data-action="enter-macro"]').click();
+  await page.locator('[data-region="he_dong"]').click();
+  assert.ok(await page.locator('.ability-control').isVisible(),'unlocked ability appears only in outbreak detail');
+  await page.locator('[data-action="ability"]').click();
+  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('yi-save-v01')).activeEffects.some(e=>e.id==='follow_column')),'ability action persists its effect');
+  await page.screenshot({path:`output/${label}-ability.png`,fullPage:true});
   await context.close();
 };
 try{await run({width:1440,height:900},'desktop');await run({width:1280,height:720},'laptop');await run({width:390,height:844},'mobile');assert.deepEqual(errors,[]);console.log('PASS 3 viewports: full flow, 8 diseases, 6 factions, reading pause/resume, keyboard dialog, disclosure persistence, save reload, no page errors or horizontal overflow');}finally{await browser.close();}

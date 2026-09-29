@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { diseases, events, macroRegions, regions } from '../src/data.js';
-import { SAVE_KEY, SAVE_SCHEMA_VERSION, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel } from '../src/game.js';
+import { SAVE_KEY, SAVE_SCHEMA_VERSION, abilityForOutbreak, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, canUseAbility, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel, useAbility } from '../src/game.js';
 
 assert.equal(diseases.length,8);
 assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
@@ -11,6 +11,74 @@ assert.deepEqual([...assigned].sort(),regions.map(r=>r.id).sort());
 globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify({...newGame('旧档'),seenProvinces:['北境','河东州','临河州','南河州']}):null};
 assert.deepEqual(loadGame().seenProvinces,['朔北','河东郡','临津州','洛南']);
 delete globalThis.localStorage;
+
+// v0.6：四种初始疫各两条疫路，行动解锁、目标、代价、冷却及实际效果。
+const abilityGame=(kind,region,skill)=>{const g=newGame('主动疫路');g.seed=17;dropDisease(g,region,kind);g.power=30;g.outbreaks[0].infected=100;g.diseaseSkills[kind]=[skill];return [g,g.outbreaks[0]];};
+{
+  const [g,o]=abilityGame('cold_plague','he_dong','cold_roads_1');
+  assert.equal(abilityForOutbreak(g,o).name,'逐队');
+  const before=getSpreadContext(g,o,'qiu_yuan','road').chance;
+  assert.equal(useAbility(g,o.id,'follow_column','qiu_yuan'),'');
+  assert.ok(getSpreadContext(g,o,'qiu_yuan','road').chance>before);
+  assert.equal(useAbility(g,o.id,'follow_column','qiu_yuan'),'此行动尚在冷却');
+  assert.ok(getSpreadContext(g,o,'bei_an','road').chance<getSpreadContext(g,o,'qiu_yuan','road').chance);
+}
+{
+  const [g,o]=abilityGame('cold_plague','he_dong','cold_silent_1');
+  const before=getGrowthContext(g,o);
+  assert.equal(useAbility(g,o.id,'hidden_cold'),'');
+  const after=getGrowthContext(g,o);
+  assert.ok(after.increase>=before.increase&&after.visibilitySkill<before.visibilitySkill);
+  assert.equal(g.alert,0,'匿寒不能直接降低朝警');
+}
+{
+  const [g,o]=abilityGame('black_blight','lin_he','black_city_1');
+  const growth=getGrowthContext(g,o).increase,spread=getSpreadContext(g,o,'jing','road').chance;
+  assert.equal(useAbility(g,o.id,'close_streets'),'');
+  assert.ok(getGrowthContext(g,o).increase>growth&&getSpreadContext(g,o,'jing','road').chance<spread);
+  assert.ok(getGrowthContext(g,o).visibilitySkill>1);
+}
+{
+  const [g,o]=abilityGame('black_blight','he_dong','black_fear_1');o.localAwareness=45;
+  const mobility=regionStats(g,'he_dong').mobility,order=regionStats(g,'he_dong').order;
+  assert.equal(useAbility(g,o.id,'drive_crowd'),'');
+  assert.ok(regionStats(g,'he_dong').mobility>mobility&&regionStats(g,'he_dong').order<order&&g.alert>0);
+}
+{
+  const [g,o]=abilityGame('water_woe','lin_he','water_river_1');
+  const before=getSpreadContext(g,o,'qing_xi','water').chance;
+  assert.equal(useAbility(g,o.id,'follow_river','qing_xi'),'');
+  assert.ok(getSpreadContext(g,o,'qing_xi','water').chance>before);
+  assert.ok(getSpreadContext(g,o,'qing_xi','water').chance<1);
+}
+{
+  const [g,o]=abilityGame('water_woe','yu_jiang','water_disaster_1');
+  const before=regionStats(g,'yu_jiang').disaster;
+  assert.equal(useAbility(g,o.id,'tainted_well'),'');
+  assert.ok(regionStats(g,'yu_jiang').disaster>before);
+  advanceTurn(g);assert.ok(g.activeEffects.some(e=>e.id==='tainted_well'));
+  advanceTurn(g);assert.ok(!g.activeEffects.some(e=>e.id==='tainted_well'));
+}
+{
+  const [g,o]=abilityGame('red_pox','jing','red_entry_1');
+  const growth=getGrowthContext(g,o).increase,spread=getSpreadContext(g,o,'lin_he','road').chance;
+  assert.equal(useAbility(g,o.id,'sealed_house'),'');
+  assert.ok(getGrowthContext(g,o).increase>growth&&getSpreadContext(g,o,'lin_he','road').chance<spread);
+}
+{
+  const [g,o]=abilityGame('red_pox','he_dong','red_scar_1');o.localAwareness=55;
+  const before=regionStats(g,'he_dong').mobility;
+  assert.equal(useAbility(g,o.id,'show_scars'),'');
+  assert.ok(regionStats(g,'he_dong').mobility>before);
+  updateIntel(g);
+  assert.equal(g.intel.he_dong.source,'rumor');
+  assert.ok(g.intel.he_dong.centralKnownInfected>=60);
+}
+{
+  const [g,o]=abilityGame('cold_plague','he_dong','cold_roads_2');
+  assert.equal(abilityForOutbreak(g,o),undefined);
+  assert.equal(canUseAbility(g,o.id,'follow_column','qiu_yuan'),'尚未掌握此行动');
+}
 
 // v0.6：解释层使用结算函数同一份上下文；军镇封控和水路疫性都能反映在原因中。
 const feedback=newGame('缘由');

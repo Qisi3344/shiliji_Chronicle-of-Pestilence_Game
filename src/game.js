@@ -2,6 +2,16 @@ import { diseaseSkills, diseases, events, factions, macroRegions, poolEvents, re
 
 export const SAVE_KEY = 'yi-save-v01';
 export const SAVE_SCHEMA_VERSION = 2;
+export const activeAbilities = [
+  {id:'follow_column',diseaseId:'cold_plague',skill:'cold_roads_1',name:'逐队',cost:3,route:'road',text:'选定官道，本旬追随迁徙人流。'},
+  {id:'hidden_cold',diseaseId:'cold_plague',skill:'cold_silent_1',name:'匿寒',cost:2,text:'本旬更难被察觉，仍维持本地增长。'},
+  {id:'close_streets',diseaseId:'black_blight',skill:'black_city_1',name:'闭街成灶',cost:3,text:'牺牲外溢，强化城中增长并引起察觉。'},
+  {id:'drive_crowd',diseaseId:'black_blight',skill:'black_fear_1',name:'驱众',cost:3,text:'惊散人群，破坏秩序并提高外溢。'},
+  {id:'follow_river',diseaseId:'water_woe',skill:'water_river_1',name:'顺流',cost:3,route:'water',text:'选定水路，本旬提高该方向外溢机会。'},
+  {id:'tainted_well',diseaseId:'water_woe',skill:'water_disaster_1',name:'污井',cost:4,text:'留下两旬水患，助长水殇与水路传播。'},
+  {id:'sealed_house',diseaseId:'red_pox',skill:'red_entry_1',name:'闭门成灶',cost:3,text:'封闭之地减少外流，却使共居传播加快。'},
+  {id:'show_scars',diseaseId:'red_pox',skill:'red_scar_1',name:'示疮',cost:3,text:'制造惊避迁徙，也更快传入京师耳目。'}
+];
 const clamp = (n, a=0, b=100) => Math.max(a, Math.min(b, n));
 const byId = id => regions.find(r => r.id === id);
 const disease = id => diseases.find(d => d.id === id);
@@ -80,6 +90,9 @@ export function updateIntel(state) {
     item.pendingReportedInfected=item.reportedInfected;
     item.reliability=real?Math.round(clamp(100-Math.abs(item.reportedInfected-real)/real*100)):100;
     item.source='official'; item.updatedTurn=nextTurn;
+    if (real&&(state.activeEffects||[]).some(e=>e.id==='show_scars'&&e.regionId===r.id&&e.expiresTurn>=state.turn)) {
+      item.centralKnownInfected=Math.max(item.centralKnownInfected,Math.round(real*.6));item.source='rumor';
+    }
   }
   if ((state.poolEvents||[]).some(e=>e.pid==='pool_report'&&e.turn===nextTurn)) {
     const item=intel[worst.id], real=trueInfected(state,worst.id);
@@ -108,7 +121,8 @@ export const regionOutbreaks = (state, regionId) => state.outbreaks.filter(o => 
 export const regionStats = (state, regionId) => {
   const r=byId(regionId), active=activeEvents(state,regionId);
   const court=state.factionActions||{}, strict=court.emperor?.status==='圣心震怒', relief=court.crown_prince?.status==='分区赈济';
-  const extraMobility=(strict?-8:0)+(court.people?.status==='自发避疫'?-9:court.people?.status==='闻风迁徙'?5:0)+(relief&&['nan_he','chang_ping'].includes(regionId)?-12:0)+(court.gentry?.status==='闭庄逐客'&&['lin_he','qing_xi'].includes(regionId)?12:0);
+  const effects=(state.activeEffects||[]).filter(e=>e.regionId===regionId&&e.expiresTurn>=state.turn);
+  const extraMobility=(strict?-8:0)+(court.people?.status==='自发避疫'?-9:court.people?.status==='闻风迁徙'?5:0)+(relief&&['nan_he','chang_ping'].includes(regionId)?-12:0)+(court.gentry?.status==='闭庄逐客'&&['lin_he','qing_xi'].includes(regionId)?12:0)+(effects.some(e=>e.id==='drive_crowd')?20:0)+(effects.some(e=>e.id==='show_scars')?12:0);
   const extraGovernance=(relief&&['nan_he','chang_ping'].includes(regionId)?10:0)+(court.chancellor?.status==='保全漕运'&&['chang_ping','xi_du','nan_du'].includes(regionId)?10:0);
   const local=state.outbreaks?.filter(o=>o.regionId===regionId)||[];
   const drift=state.regionDrift?.[regionId]||{};
@@ -123,7 +137,7 @@ export const regionStats = (state, regionId) => {
     if(o.diseaseId==='blood_plague'&&hasDiseaseSkill(state,o.diseaseId,'blood_frenzy_3')&&o.localAwareness>=50) plagueOrder-=5;
     if(o.diseaseId==='corpse_plague'&&hasDiseaseSkill(state,o.diseaseId,'corpse_pile_2')&&o.infected>=300){plagueOrder-=9;plagueGovernance-=7;}
   }
-  return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility+plagueMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)+plagueOrder+(drift.order||0)), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance+plagueGovernance+(drift.governance||0)) };
+  return { ...r, mobility:clamp(r.mobility+active.reduce((n,e)=>n+(e.mobility||0),0)+extraMobility+plagueMobility), disaster:clamp(r.disaster+active.reduce((n,e)=>n+(e.disaster||0),0)+(effects.some(e=>e.id==='tainted_well')?15:0)), order:clamp(r.order+active.reduce((n,e)=>n+(e.order||0),0)+(court.gentry?.status==='囤粮待价'&&regionId==='lin_he'?-5:0)+plagueOrder+(drift.order||0)), governance:clamp(r.governance+active.reduce((n,e)=>n+(e.governance||0),0)+extraGovernance+plagueGovernance+(drift.governance||0)) };
 };
 export const macroRegionOutbreaks = (state, macroId) => {
   const macro=macroRegions.find(r=>r.id===macroId);
@@ -146,7 +160,7 @@ export const macroRegionStats = (state, macroId) => {
   return {population,infected,activeDiseases,outbreakCount:outbreaks.length,infectedNodeCount:infectedNodes,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
-  return { version:SAVE_SCHEMA_VERSION, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, intel:Object.fromEntries(regions.map(r=>[r.id,emptyIntel()])), log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
+  return { version:SAVE_SCHEMA_VERSION, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, activeEffects:[], abilityCooldowns:{}, intel:Object.fromEntries(regions.map(r=>[r.id,emptyIntel()])), log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
 }
 export function canDrop(state, regionId, diseaseId) {
   const d=disease(diseaseId);
@@ -206,6 +220,44 @@ export function borrowEvent(state, outbreakId, eventId) {
   state.power-=e.cost; o.borrowedTurn=state.turn; o.borrowedEventId=e.id; gainDiseaseXP(state,o.diseaseId,1);
   return '';
 }
+export const abilityForOutbreak = (state,o) => activeAbilities.find(a=>a.diseaseId===o.diseaseId&&hasDiseaseSkill(state,o.diseaseId,a.skill));
+export function abilityTargets(state,o,ability) {
+  if(!ability?.route)return [];
+  const edges=ability.route==='water'?waterways:roads;
+  return edges.filter(edge=>edge.includes(o.regionId)).map(edge=>edge.find(id=>id!==o.regionId)).filter(id=>!state.outbreaks.some(x=>x.regionId===id&&x.diseaseId===o.diseaseId));
+}
+export function canUseAbility(state,outbreakId,abilityId,targetId) {
+  const o=state.outbreaks.find(x=>x.id===outbreakId), ability=activeAbilities.find(a=>a.id===abilityId);
+  if(!o||!ability||abilityForOutbreak(state,o)?.id!==abilityId)return '尚未掌握此行动';
+  if((state.abilityCooldowns?.[abilityId]||0)>state.turn)return '此行动尚在冷却';
+  if(state.power<ability.cost)return `疫势不足，需 ${ability.cost}`;
+  const r=regionStats(state,o.regionId);
+  if(ability.route&&!abilityTargets(state,o,ability).includes(targetId))return '请选择可抵达的未染疫邻地';
+  if(abilityId==='follow_column'&&!activeEvents(state,o.regionId).some(e=>['population','military'].includes(e.category)))return '此地本旬没有迁徙人流';
+  if(abilityId==='close_streets'&&r.population<40)return '需要人口较多的疫区';
+  if(abilityId==='drive_crowd'&&o.localAwareness<40)return '地方尚未察觉此疫';
+  if(abilityId==='tainted_well'&&r.disaster<60)return '此地灾患尚不够高';
+  if(abilityId==='sealed_house'&&!['capital','military'].includes(r.type)&&r.governance<65)return '需要封闭或高治理地区';
+  if(abilityId==='show_scars'&&o.localAwareness<50)return '地方察觉需达到 50';
+  return '';
+}
+export function useAbility(state,outbreakId,abilityId,targetId) {
+  const error=canUseAbility(state,outbreakId,abilityId,targetId);if(error)return error;
+  const o=state.outbreaks.find(x=>x.id===outbreakId),ability=activeAbilities.find(a=>a.id===abilityId);
+  state.power-=ability.cost;
+  state.abilityCooldowns??={};state.abilityCooldowns[abilityId]=state.turn+2;
+  state.activeEffects??=[];
+  state.activeEffects.push({id:abilityId,outbreakId,regionId:o.regionId,targetId:targetId||null,expiresTurn:state.turn+(abilityId==='tainted_well'?1:0)});
+  if(abilityId==='drive_crowd'||abilityId==='show_scars') {
+    const drift=(state.regionDrift??={})[o.regionId]??={order:0,governance:0};
+    drift.order=Math.max(-45,drift.order-(abilityId==='drive_crowd'?5:4));
+    o.localAwareness=clamp(o.localAwareness+(abilityId==='drive_crowd'?8:5));
+    state.alert=clamp(state.alert+(abilityId==='drive_crowd'?2:1));
+  }
+  state.log.unshift({turn:state.turn,category:'epidemic',title:`${disease(o.diseaseId).name} · ${ability.name}`,text:ability.text,effect:`疫势 -${ability.cost}${targetId?` · 目标 ${byId(targetId).name}`:''}`,regionIds:[o.regionId,...(targetId?[targetId]:[])]});
+  return '';
+}
+const hasEffect=(state,o,id,targetId) => (state.activeEffects||[]).some(e=>e.id===id&&e.outbreakId===o.id&&e.expiresTurn>=state.turn&&(!targetId||e.targetId===targetId));
 function factionTurn(state) {
   const alert=state.alert, sick=state.outbreaks.length, capital=regionOutbreaks(state,'jing').length>0;
   const actions={
@@ -338,12 +390,17 @@ export function getGrowthContext(state,o) {
     if(has('corpse_grave_2')&&r.disaster>=60) spreadSkill*=1.2;
     if(has('corpse_grave_3')&&o.localAwareness>=60) awarenessRelief=.35;
   }
+  if(hasEffect(state,o,'hidden_cold')){growthSkill*=1.12;visibilitySkill*=.4;}
+  if(hasEffect(state,o,'close_streets')){growthSkill*=1.3;spreadSkill*=.45;visibilitySkill*=1.35;}
+  if(hasEffect(state,o,'drive_crowd'))spreadSkill*=1.3;
+  if(hasEffect(state,o,'tainted_well')){growthSkill*=1.15;waterSkill*=1.2;}
+  if(hasEffect(state,o,'sealed_house')){growthSkill*=1.25;spreadSkill*=.5;}
   const stanceGrowth={dormant:.8,spread:1,surge:1.4}[o.stance];
   const environment=d.id==='water_woe'? .55+r.disaster/100*d.environment : d.id==='black_blight' ? .7+r.population/100 : 1;
   const gathering=(1+active.reduce((n,e)=>n+(e.spread||0),0)+(borrowed ? .45 : 0))*eventSkill;
   const control=1-(r.governance/220)*(1-governanceRelief)-(Math.max(0,o.localAwareness-40)/350)*(1-awarenessRelief);
   const increase=Math.max(1,Math.round((2+o.infected*.38)*d.growth*stanceGrowth*environment*gathering*control*growthSkill*(hidden?.85:1)));
-  const positive=[...(growthSkill>1?['疫路强化']:[]),...(environment>1?['环境助长']:[]),...(gathering>1?['大事聚集或借势']:[]),...(o.stance==='surge'?['盛发姿态']:[])];
+  const positive=[...(growthSkill>1?['疫路强化或主动行动']:[]),...(environment>1?['环境助长']:[]),...(gathering>1?['大事聚集或借势']:[]),...(o.stance==='surge'?['盛发姿态']:[])];
   const negative=[...(r.governance>=60?['地方治理较高']:[]),...(o.localAwareness>40?['地方已察觉']:[]),...(hidden?['藏疫减缓增长']:[]),...(o.stance==='dormant'?['蛰伏姿态']:[])];
   return {r,d,hidden,borrowed,increase,visibilitySkill,spreadSkill,roadSkill,waterSkill,gathering,positive,negative};
 }
@@ -355,10 +412,11 @@ export function getSpreadContext(state,o,targetId,routeType,growth=getGrowthCont
   const armyBrake=state.alert>=40&&(r.type==='military'||target.type==='military') ? .55 : 1;
   const weight=routeType==='water'?1.2:1;
   const routeSkill=routeType==='water'?waterSkill:roadSkill;
-  const chance=Math.min(.88,(.08+Math.min(.48,o.infected/90))*d.spread*flow*weight*stance*gathering*armyBrake*spreadSkill*routeSkill*(borrowed?1.4:1));
+  const directed=hasEffect(state,o,routeType==='water'?'follow_river':'follow_column',targetId)?1.8:1;
+  const chance=Math.min(.88,(.08+Math.min(.48,o.infected/90))*d.spread*flow*weight*stance*gathering*armyBrake*spreadSkill*routeSkill*(borrowed?1.4:1)*directed);
   const label=chance<.08?'极低':chance<.2?'低':chance<.4?'中':chance<.65?'高':'极高';
-  const positive=[...(routeType==='water'?['水路']:[]),...(flow>=.6?['沿路人流']:[]),...(stance>1?['蔓延或盛发姿态']:[]),...(gathering>1?['大事聚集']:[]),...(routeSkill>1||spreadSkill>1?['疫路强化']:[]),...(borrowed?['借势']:[])];
-  const negative=[...(armyBrake<1?['军镇查验']:[]),...(flow<.4?['沿路人流稀少']:[]),...(stance<1?['蛰伏姿态']:[])];
+  const positive=[...(routeType==='water'?['水路']:[]),...(flow>=.6?['沿路人流']:[]),...(stance>1?['蔓延或盛发姿态']:[]),...(gathering>1?['大事聚集']:[]),...(routeSkill>1||spreadSkill>1?['疫路强化']:[]),...(borrowed?['借势']:[]),...(directed>1?['定向行动']:[])];
+  const negative=[...(armyBrake<1?['军镇查验']:[]),...(flow<.4?['沿路人流稀少']:[]),...(stance<1?['蛰伏姿态']:[]),...(spreadSkill<1?['封闭街巷']:[])];
   return {chance,label,positive,negative,armyBrake};
 }
 export function advanceTurn(state) {
@@ -444,6 +502,7 @@ export function advanceTurn(state) {
   const scarMastery=state.outbreaks.filter(o=>o.stance==='surge'&&hasDiseaseSkill(state,o.diseaseId,'red_scar_3')).length;
   state.power+=Math.min(12,(state.outbreaks.length?1:0)+fresh.length+surged*2+fearMastery+scarMastery+(fresh.some(o=>o.regionId==='jing')?4:0));
   state.turn++;
+  state.activeEffects=(state.activeEffects||[]).filter(e=>e.expiresTurn>=state.turn);
   if (!notes.length) notes.push(state.outbreaks.length?`${state.outbreaks.length}处疫区仍在暗中生长`:'天下暂无疫踪，朝野相庆');
   state.lastReport={turn:state.turn,headlines:notes.slice(0,3),factions:factionNotes.slice(0,3),newRegions:fresh.length,power:state.power-before.power,scar:state.scar-before.scar,alert:state.alert-before.alert};
   state.log.unshift({turn:state.turn,category:'epidemic',title:'旬末疫报',text:notes.slice(0,3).join('；')+'。',effect:`新染疫 ${fresh.length} 地 · 疫势 ${state.lastReport.power>=0?'+':''}${state.lastReport.power} · 疫痕 +${state.lastReport.scar} · 朝警 ${state.lastReport.alert>=0?'+':''}${state.lastReport.alert}`,regionIds:fresh.map(o=>o.regionId)});
@@ -465,6 +524,6 @@ export function setTimeSpeed(state,speed) {
   if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; s.activeEffects??=[]; s.abilityCooldowns??={}; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

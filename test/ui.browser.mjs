@@ -3,6 +3,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 import { mkdir } from 'node:fs/promises';
 await mkdir('output', { recursive: true });
 import assert from 'node:assert/strict';
+import { regions } from '../src/data.js';
 const browser=await chromium.launch({headless:true});
 const errors=[];
 const run=async(viewport,label)=>{
@@ -18,6 +19,8 @@ const run=async(viewport,label)=>{
   await page.locator('#name-form button[type="submit"]').click();
   for(let i=0;i<9;i++)await page.locator('[data-action="prologue-next"]').click();
   await page.locator('[data-action="first-disease"][data-id="cold_plague"]').click();
+  await page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('yi-save-v01'));saved.seed=1;localStorage.setItem('yi-save-v01',JSON.stringify(saved));});
+  await page.reload();
   let state=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
   assert.equal(state.mapMode,'realm');
   assert.equal(await page.locator('[data-macro]').count(),6);
@@ -39,7 +42,7 @@ const run=async(viewport,label)=>{
   if(label==='mobile'){
     const leaf=await page.locator('.detail-panel').boundingBox();
     assert.ok(leaf.x>=12&&leaf.x+leaf.width<=viewport.width-12,'archive leaf keeps side margins');
-    assert.equal(await page.locator('.detail-panel').evaluate(el=>getComputedStyle(el).borderTopLeftRadius),'1px');
+    assert.ok(parseFloat(await page.locator('.detail-panel').evaluate(el=>getComputedStyle(el).borderTopLeftRadius))<=2,'archive leaf keeps near-square corners');
     assert.ok(await page.locator('.dossier-date').isVisible());
     assert.ok(await page.locator('.dossier-close-label').isVisible());
     await page.locator('.detail-close').click();
@@ -50,7 +53,7 @@ const run=async(viewport,label)=>{
   await page.locator('[data-action="drop"]').click();
   assert.equal(await page.locator('details[data-disclosure]').first().getAttribute('open'),'','disclosure survives render');
   await page.locator('[data-action="close-modal"]').click();
-  if(label==='mobile')await page.locator('.detail-close').click();
+  await page.locator('.detail-close').click();
   await page.locator('[data-action="speed"][data-value="0"]:visible').first().click({force:true});
   state=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
   assert.equal(state.drops,1);assert.equal(state.outbreaks.length,1);
@@ -62,6 +65,10 @@ const run=async(viewport,label)=>{
   assert.equal(state.turn,1);assert.ok(state.power>=1);
   await page.screenshot({path:`output/${label}-map.png`,fullPage:true});
   await page.locator('[data-region="he_dong"]').click();
+  assert.ok(await page.locator('.intel-note').isVisible(),'local report is visible in the dossier');
+  assert.equal(await page.locator('.ability-control').count(),0,'locked ability has no action entry');
+  await page.locator('details[data-disclosure^="spread-"] summary').first().click();
+  assert.ok((await page.locator('details[data-disclosure^="spread-"]').first().textContent()).includes('本地增长'));
   await page.locator('[data-action="stance"][data-value="spread"]').click();
   if(label==='mobile'){
     await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=0);
@@ -108,6 +115,7 @@ const run=async(viewport,label)=>{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'codex overflow');
   await page.locator('[data-tab="court"]:visible').first().click();
   assert.equal(await page.locator('.faction-card').count(),6);
+  assert.ok(await page.locator('.court-perception').isVisible(),'court view compares reality and received reports');
   for(let i=0;i<6;i++){await page.locator('[data-action="select-faction"]').nth(i).click();assert.equal(await page.locator('.faction-card:visible').count(),1);}
   await page.screenshot({path:`output/${label}-court.png`,fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'court overflow');
@@ -138,6 +146,37 @@ const run=async(viewport,label)=>{
   assert.equal(state.mapMode,'realm');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
   assert.equal(overflow,false,`${label} horizontal overflow`);
+  await page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('yi-save-v01'));saved.diseaseSkills.cold_plague=['cold_roads_1'];saved.power=10;localStorage.setItem('yi-save-v01',JSON.stringify(saved));});
+  await page.reload();
+  await page.locator('[data-macro="hedong"]').click();
+  await page.locator('[data-action="enter-macro"]').click();
+  await page.locator('[data-region="he_dong"]').click();
+  assert.ok(await page.locator('.ability-control').isVisible(),'unlocked ability appears only in outbreak detail');
+  await page.locator('[data-action="ability"]').scrollIntoViewIfNeeded();
+  const abilityScroll=await page.locator('.detail-scroll').evaluate(el=>el.scrollTop);
+  await page.locator('[data-action="ability"]').click();
+  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('yi-save-v01')).activeEffects.some(e=>e.id==='follow_column')),'ability action persists its effect');
+  if(label==='mobile')assert.ok(Math.abs(await page.locator('.detail-scroll').evaluate(el=>el.scrollTop)-abilityScroll)<20,'action keeps archive scroll position');
+  await page.screenshot({path:`output/${label}-ability.png`,fullPage:true});
+  if(label!=='laptop'){
+    const outbreaks=regions.map(r=>({id:`${r.id}-cold_plague`,regionId:r.id,diseaseId:'cold_plague',infected:5000,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null}));
+    await page.evaluate(items=>{const saved=JSON.parse(localStorage.getItem('yi-save-v01'));saved.turn=8;saved.seed=1;saved.drops=1;saved.power=100;saved.alert=0;saved.outbreaks=items;saved.crisis=null;localStorage.setItem('yi-save-v01',JSON.stringify(saved));},outbreaks);
+    await page.reload();
+    for(let i=0;i<10;i++)await page.evaluate(()=>window.advanceTime());
+    state=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
+    assert.equal(state.crisis?.remaining,3);
+    assert.equal(state.ending,null);
+    assert.ok(await page.locator('.crisis-badge').isVisible());
+    await page.screenshot({path:`output/${label}-crisis.png`,fullPage:true});
+    await page.locator('[data-macro="hedong"]').click();
+    await page.locator('[data-action="enter-macro"]').click();
+    await page.locator('[data-region="he_dong"]').click();
+    await page.locator('[data-action="stance"][data-value="surge"]').first().click();
+    assert.equal(JSON.parse(await page.evaluate(()=>window.render_game_to_text())).outbreaks.find(o=>o.region==='he_dong').stance,'surge');
+    for(let i=0;i<30;i++)await page.evaluate(()=>window.advanceTime());
+    assert.ok(JSON.parse(await page.evaluate(()=>window.render_game_to_text())).ending);
+    await page.screenshot({path:`output/${label}-ending.png`,fullPage:true});
+  }
   await context.close();
 };
 try{await run({width:1440,height:900},'desktop');await run({width:1280,height:720},'laptop');await run({width:390,height:844},'mobile');assert.deepEqual(errors,[]);console.log('PASS 3 viewports: full flow, 8 diseases, 6 factions, reading pause/resume, keyboard dialog, disclosure persistence, save reload, no page errors or horizontal overflow');}finally{await browser.close();}

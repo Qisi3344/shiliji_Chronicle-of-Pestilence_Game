@@ -298,6 +298,18 @@ button:not(:disabled):active{transform:translateY(1px)}
 .detail-panel .local-event b{color:#25231F}
 .detail-panel .local-event p{color:#57534a}
 .detail-panel .local-event small{color:#8a3c30}
+.detail-panel .intel-note{margin:20px 0 8px;padding:10px 12px;border-left:2px solid #a87954;background:#1a201c;color:#d6c8aa}
+.intel-note p{margin:5px 0;color:#bcb9a5;font-size:12px;line-height:1.6}
+.intel-note small{color:#b79077}
+.forecast-row{padding:7px 0;border-top:1px dotted #93866a38;color:#d6c8aa}
+.forecast-row p{display:flex;flex-wrap:wrap;gap:2px 12px;margin:5px 0;font-size:12px;color:#aeb5a8}
+.ability-control{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #9b805a45}
+.ability-control>div{flex:1;min-width:110px}.ability-control strong{display:block;color:#dbc69b}.ability-control small{display:block;color:#a6a28d;font-size:11px}
+.ability-control select,.ability-control button{min-height:44px}.ability-control select{max-width:130px}.ability-control p{width:100%;margin:0;font-size:12px;color:#aeb5a8}
+.court-perception{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0 0 18px;padding:12px 18px;border:1px solid #9b805a45;background:#1b211d;color:#bcb9a5;font-size:13px}
+.court-perception b{margin-left:5px;color:#ddc898}
+.crisis-badge{padding:5px 8px;border:1px solid #a75348;color:#e6b0a0;font-size:12px;white-space:nowrap}
+@media(max-width:767px){.session-bar .crisis-badge{order:3;margin-right:auto}.session-bar .time-controls{order:4}}
 
 /* —— 疫志：病理档案头（§14） —— */
 .journal-head{display:grid;gap:8px;padding:24px 28px 0;border-bottom:0}

@@ -25,6 +25,9 @@ try {
     await page.locator('[data-region="he_dong"]').click();
     assert.ok(await page.locator('[data-action="drop"]').isVisible());
     if (viewport.width < 1024) assert.ok(await page.locator('.dossier-close-label').isVisible());
+    await page.locator('[data-action="drop"]').click();
+    await page.locator('[data-action="close-modal"]').click();
+    assert.ok(await page.locator('.outbreak-card').isVisible(), 'raw hosting must allow the first action');
     await page.screenshot({ path: `output/static-${viewport.width}.png` });
     assert.deepEqual(errors, [], 'no browser errors');
     await page.close();

@@ -298,6 +298,11 @@ button:not(:disabled):active{transform:translateY(1px)}
 .detail-panel .local-event b{color:#25231F}
 .detail-panel .local-event p{color:#57534a}
 .detail-panel .local-event small{color:#8a3c30}
+.detail-panel .intel-note{margin:20px 0 8px;padding:10px 12px;border-left:2px solid #a87954;background:#1a201c;color:#d6c8aa}
+.intel-note p{margin:5px 0;color:#bcb9a5;font-size:12px;line-height:1.6}
+.intel-note small{color:#b79077}
+.forecast-row{padding:7px 0;border-top:1px dotted #93866a38;color:#d6c8aa}
+.forecast-row p{display:flex;flex-wrap:wrap;gap:2px 12px;margin:5px 0;font-size:12px;color:#aeb5a8}
 
 /* —— 疫志：病理档案头（§14） —— */
 .journal-head{display:grid;gap:8px;padding:24px 28px 0;border-bottom:0}

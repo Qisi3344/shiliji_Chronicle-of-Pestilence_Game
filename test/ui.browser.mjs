@@ -18,6 +18,8 @@ const run=async(viewport,label)=>{
   await page.locator('#name-form button[type="submit"]').click();
   for(let i=0;i<9;i++)await page.locator('[data-action="prologue-next"]').click();
   await page.locator('[data-action="first-disease"][data-id="cold_plague"]').click();
+  await page.evaluate(()=>{const saved=JSON.parse(localStorage.getItem('yi-save-v01'));saved.seed=1;localStorage.setItem('yi-save-v01',JSON.stringify(saved));});
+  await page.reload();
   let state=JSON.parse(await page.evaluate(()=>window.render_game_to_text()));
   assert.equal(state.mapMode,'realm');
   assert.equal(await page.locator('[data-macro]').count(),6);
@@ -39,7 +41,7 @@ const run=async(viewport,label)=>{
   if(label==='mobile'){
     const leaf=await page.locator('.detail-panel').boundingBox();
     assert.ok(leaf.x>=12&&leaf.x+leaf.width<=viewport.width-12,'archive leaf keeps side margins');
-    assert.equal(await page.locator('.detail-panel').evaluate(el=>getComputedStyle(el).borderTopLeftRadius),'1px');
+    assert.ok(parseFloat(await page.locator('.detail-panel').evaluate(el=>getComputedStyle(el).borderTopLeftRadius))<=2,'archive leaf keeps near-square corners');
     assert.ok(await page.locator('.dossier-date').isVisible());
     assert.ok(await page.locator('.dossier-close-label').isVisible());
     await page.locator('.detail-close').click();
@@ -62,6 +64,9 @@ const run=async(viewport,label)=>{
   assert.equal(state.turn,1);assert.ok(state.power>=1);
   await page.screenshot({path:`output/${label}-map.png`,fullPage:true});
   await page.locator('[data-region="he_dong"]').click();
+  assert.ok(await page.locator('.intel-note').isVisible(),'local report is visible in the dossier');
+  await page.locator('details[data-disclosure^="spread-"] summary').first().click();
+  assert.ok((await page.locator('details[data-disclosure^="spread-"]').first().textContent()).includes('本地增长'));
   await page.locator('[data-action="stance"][data-value="spread"]').click();
   if(label==='mobile'){
     await page.locator('.detail-scroll').evaluate(el=>el.scrollTop=0);

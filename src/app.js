@@ -27,6 +27,7 @@ const defaultMap=()=>mapBoxFor(stateUI.mapMode,stateUI.activeMacroRegion);
 stateUI.map=defaultMap();
 let narrowMap=window.innerWidth<768;
 let game=loadGame();
+if(game?.ending)saveGame(game);
 stateUI.codexDisease=game?.firstDisease||diseases[0].id;
 stateUI.courtFaction=factions[0].id;
 stateUI.disclosures={};

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { diseases, events, macroRegions, regions } from '../src/data.js';
-import { SAVE_KEY, SAVE_SCHEMA_VERSION, abilityForOutbreak, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, canUseAbility, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, factionTurn, getCourtPerception, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel, useAbility } from '../src/game.js';
+import { HISTORY_KEY, SAVE_KEY, SAVE_SCHEMA_VERSION, abilityForOutbreak, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, canUseAbility, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, factionTurn, getCourtPerception, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, loadHistory, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, saveGame, setTimeSpeed, unlockDiseaseSkill, updateIntel, useAbility } from '../src/game.js';
 
 assert.equal(diseases.length,8);
 assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
@@ -319,3 +319,33 @@ contained.regionDrift.jing={order:0,governance:0};
 for(const o of contained.outbreaks){o.infected=1;o.localAwareness=0;}
 advanceTurn(contained);advanceTurn(contained);
 assert.equal(contained.ending.id,'da_yi');
+
+
+{
+ const storage=new Map();
+ globalThis.localStorage={
+   getItem:key=>storage.get(key)??null,
+   setItem:(key,value)=>storage.set(key,String(value)),
+   removeItem:key=>storage.delete(key)
+ };
+ const finished=newGame('前尘');
+ finished.seed=4242;finished.turn=18;finished.firstDisease='cold_plague';finished.diseaseXP.cold_plague=9;
+ finished.seenRegions=['bei_an','yan_men'];finished.scar=52;finished.alert=77;
+ finished.outbreaks=[{id:'hist-1',regionId:'bei_an',diseaseId:'cold_plague',infected:321,localAwareness:80,stance:'spread'}];
+ finished.ending={id:'da_yi',turn:18};
+ finished.log.unshift({turn:18,category:'epidemic',title:'旧卷终',text:'史官收卷。',effect:'终局：大疫',regionIds:['bei_an']});
+ saveGame(finished);
+ assert.equal(loadHistory().length,1,'finished save should enter history');
+ assert.equal(loadHistory()[0].name,'前尘');
+ assert.equal(loadHistory()[0].infected,321);
+ assert.equal(loadHistory()[0].regionsHit,2);
+ saveGame(finished);
+ assert.equal(loadHistory().length,1,'re-saving same ending must not duplicate history');
+ localStorage.removeItem(SAVE_KEY);
+ assert.equal(loadHistory().length,1,'clearing current save must not clear history');
+ const next=newGame('今世');saveGame(next);
+ assert.equal(loadHistory().length,1,'starting a new run must preserve prior history');
+ assert.ok(localStorage.getItem(HISTORY_KEY),'history should use a separate storage key');
+ delete globalThis.localStorage;
+}
+console.log('PASS archive: persistent multi-run history verified');

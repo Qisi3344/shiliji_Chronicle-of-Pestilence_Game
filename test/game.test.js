@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { diseases, events, macroRegions, regions } from '../src/data.js';
-import { SAVE_KEY, SAVE_SCHEMA_VERSION, abilityForOutbreak, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, canUseAbility, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel, useAbility } from '../src/game.js';
+import { SAVE_KEY, SAVE_SCHEMA_VERSION, abilityForOutbreak, advanceDay, advanceTurn, borrowEvent, canDrop, canUnlockDiseaseSkill, canUseAbility, changeStance, dateName, diseaseProgress, dropDisease, dropLimit, factionTurn, getCourtPerception, getGrowthContext, getSpreadContext, hasDiseaseSkill, hideDisease, loadGame, macroRegionEvents, macroRegionOutbreaks, macroRegionStats, newGame, periodName, regionStats, setTimeSpeed, unlockDiseaseSkill, updateIntel, useAbility } from '../src/game.js';
 
 assert.equal(diseases.length,8);
 assert.deepEqual(macroRegions.map(r=>r.name),['京畿','朔北','河东郡','临津州','洛南','东海州']);
@@ -91,9 +91,9 @@ assert.ok(waterBoost.chance>waterBase.chance);
 assert.ok(waterBoost.positive.includes('疫路强化'));
 assert.ok(getGrowthContext(feedback,feedback.outbreaks[0]).increase>0);
 const armyFeedback=newGame('军镇');dropDisease(armyFeedback,'bei_an','cold_plague');
-armyFeedback.alert=40;armyFeedback.outbreaks[0].infected=100;
+armyFeedback.factionActions.army.status='封营查验';armyFeedback.outbreaks[0].infected=100;
 const blocked=getSpreadContext(armyFeedback,armyFeedback.outbreaks[0],'bei_zhen','road');
-armyFeedback.alert=39;
+armyFeedback.factionActions.army.status='照常征发';
 assert.ok(blocked.chance<getSpreadContext(armyFeedback,armyFeedback.outbreaks[0],'bei_zhen','road').chance);
 assert.ok(blocked.negative.includes('军镇查验'));
 
@@ -276,3 +276,17 @@ globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify(legacy):null
 assert.equal(loadGame().version,SAVE_SCHEMA_VERSION);
 assert.equal(loadGame().intel.he_dong.reportedInfected,0);
 delete globalThis.localStorage;
+
+// v0.6：真实疫情相同，京师认知不同，皇帝行动必须不同；密报能在下一旬升级反应。
+const courtBlind=newGame('不知'),courtInformed=newGame('已知');
+for(const g of [courtBlind,courtInformed]){dropDisease(g,'jing','red_pox');g.outbreaks[0].infected=5000;g.alert=80;}
+courtInformed.intel.jing.centralKnownInfected=4500;
+assert.deepEqual(courtBlind.outbreaks,courtInformed.outbreaks);
+assert.equal(getCourtPerception(courtBlind).capitalKnown,false);
+assert.equal(getCourtPerception(courtInformed).capitalKnown,true);
+factionTurn(courtBlind);factionTurn(courtInformed);
+assert.equal(courtBlind.factionActions.emperor.status,'粉饰太平');
+assert.equal(courtInformed.factionActions.emperor.status,'圣心震怒');
+assert.equal(courtBlind.outbreaks[0].infected,5000);
+factionTurn(suppressedReport);
+assert.equal(suppressedReport.factionActions.emperor.status,'圣心震怒');

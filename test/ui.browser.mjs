@@ -114,6 +114,7 @@ const run=async(viewport,label)=>{
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'codex overflow');
   await page.locator('[data-tab="court"]:visible').first().click();
   assert.equal(await page.locator('.faction-card').count(),6);
+  assert.ok(await page.locator('.court-perception').isVisible(),'court view compares reality and received reports');
   for(let i=0;i<6;i++){await page.locator('[data-action="select-faction"]').nth(i).click();assert.equal(await page.locator('.faction-card:visible').count(),1);}
   await page.screenshot({path:`output/${label}-court.png`,fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,'court overflow');
@@ -150,8 +151,11 @@ const run=async(viewport,label)=>{
   await page.locator('[data-action="enter-macro"]').click();
   await page.locator('[data-region="he_dong"]').click();
   assert.ok(await page.locator('.ability-control').isVisible(),'unlocked ability appears only in outbreak detail');
+  await page.locator('[data-action="ability"]').scrollIntoViewIfNeeded();
+  const abilityScroll=await page.locator('.detail-scroll').evaluate(el=>el.scrollTop);
   await page.locator('[data-action="ability"]').click();
   assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('yi-save-v01')).activeEffects.some(e=>e.id==='follow_column')),'ability action persists its effect');
+  if(label==='mobile')assert.ok(Math.abs(await page.locator('.detail-scroll').evaluate(el=>el.scrollTop)-abilityScroll)<20,'action keeps archive scroll position');
   await page.screenshot({path:`output/${label}-ability.png`,fullPage:true});
   await context.close();
 };

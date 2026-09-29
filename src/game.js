@@ -258,19 +258,30 @@ export function useAbility(state,outbreakId,abilityId,targetId) {
   return '';
 }
 const hasEffect=(state,o,id,targetId) => (state.activeEffects||[]).some(e=>e.id===id&&e.outbreakId===o.id&&e.expiresTurn>=state.turn&&(!targetId||e.targetId===targetId));
-function factionTurn(state) {
-  const alert=state.alert, sick=state.outbreaks.length, capital=regionOutbreaks(state,'jing').length>0;
+export function getCourtPerception(state) {
+  const intel=ensureIntel(state), known=regions.filter(r=>intel[r.id].centralKnownInfected>0);
+  const worst=known.reduce((best,r)=>!best||intel[r.id].centralKnownInfected>intel[best.id].centralKnownInfected?r:best,null);
+  return {knownSickRegions:known.length,perceivedInfected:known.reduce((n,r)=>n+intel[r.id].centralKnownInfected,0),capitalKnown:intel.jing.centralKnownInfected>0,worstKnownRegion:worst?.id||null,intelConfidence:known.length?Math.round(known.reduce((n,r)=>n+intel[r.id].reliability,0)/known.length):0};
+}
+export function factionTurn(state) {
+  const perception=getCourtPerception(state),intel=state.intel;
+  const capital=perception.capitalKnown,emperorAlarm=capital||perception.perceivedInfected>=1500||perception.knownSickRegions>=4;
+  const chancellorAlarm=perception.perceivedInfected>=500||perception.knownSickRegions>=3;
+  const armyAlarm=regions.some(r=>['military','port'].includes(r.type)&&intel[r.id].centralKnownInfected>=20);
+  const princeAlarm=state.turn>=3&&regions.some(r=>intel[r.id].reportedInfected>=30||regionStats(state,r.id).disaster>=85);
+  const gentryAlarm=['lin_he','qing_xi'].some(id=>intel[id].reportedInfected>=50||regionStats(state,id).order<45);
+  const peopleAlarm=state.outbreaks.some(o=>o.localAwareness>=40)||activeEvents(state).some(e=>e.id==='rumor');
   const actions={
-    emperor: capital||alert>=60 ? ['圣心震怒','下诏严查京畿，命诸州禁行。','朝警 +2；外流受阻'] : ['粉饰太平','命地方复核疫报，勿惊动京师。','朝警 -1；地方应对延缓'],
-    chancellor: alert>=45 ? ['保全漕运','裴桢优先调医守住粮运要道。','粮运节点治理提高'] : ['压住奏折','裴桢将地方疫报留中不发。','朝警 -1；奏报失真'],
-    crown_prince: state.turn>=3 ? ['分区赈济','景聿修命粥棚分区，灾民不再挤作一团。','洛南治理改善，人群流动下降'] : ['请开常平仓','景聿修上疏请赈，等待圣裁。','尚未形成政策'],
-    army: alert>=40 ? ['封营查验','霍云令镇朔军分营驻扎，禁止擅离。','军镇对外传播减弱'] : ['照常征发','霍云仍按旧例调动镇朔军换防。','朔北人口流动持续'],
-    gentry: sick>=4 ? ['闭庄逐客','崔氏关庄，佃户沿官道散去。','庄内收紧，周边流动上升'] : ['囤粮待价','崔氏收粮闭库。','地方秩序缓慢下降'],
-    people: alert>=40 ? ['自发避疫','村社拒外人入内，市集渐稀。','人口流动下降'] : ['闻风迁徙','百姓携家投亲，流民沿官道行走。','道路传播机会增加']
+    emperor: emperorAlarm ? ['圣心震怒','下诏严查京畿，命诸州禁行。','朝警 +2；外流受阻'] : ['粉饰太平','命地方复核疫报，勿惊动京师。','朝警 -1；地方应对延缓'],
+    chancellor: chancellorAlarm ? ['保全漕运','裴桢优先调医守住粮运要道。','粮运节点治理提高'] : ['压住奏折','裴桢将地方疫报留中不发。','朝警 -1；奏报失真'],
+    crown_prince: princeAlarm ? ['分区赈济','景聿修命粥棚分区，灾民不再挤作一团。','洛南治理改善，人群流动下降'] : ['请开常平仓','景聿修上疏请赈，等待圣裁。','尚未形成政策'],
+    army: armyAlarm ? ['封营查验','霍云令镇朔军分营驻扎，禁止擅离。','军镇对外传播减弱'] : ['照常征发','霍云仍按旧例调动镇朔军换防。','朔北人口流动持续'],
+    gentry: gentryAlarm ? ['闭庄逐客','崔氏关庄，佃户沿官道散去。','庄内收紧，周边流动上升'] : ['囤粮待价','崔氏收粮闭库。','地方秩序缓慢下降'],
+    people: peopleAlarm ? ['自发避疫','村社拒外人入内，市集渐稀。','人口流动下降'] : ['闻风迁徙','百姓携家投亲，流民沿官道行走。','道路传播机会增加']
   };
   state.factionActions=Object.fromEntries(Object.entries(actions).map(([id,[status,action,impact]])=>[id,{status,action,impact}]));
-  state.alert=clamp(state.alert+(capital||alert>=60?2:-1)+(alert>=45?0:-1));
-  return (capital||alert>=40 ? ['皇帝','边军','百姓'] : ['权相','储君','百姓']).map(name=>{
+  state.alert=clamp(state.alert+(emperorAlarm?2:-1)+(chancellorAlarm?0:-1));
+  return (emperorAlarm||armyAlarm ? ['皇帝','边军','百姓'] : ['权相','储君','百姓']).map(name=>{
     const f=factions.find(x=>x.name===name); return `${name}：${state.factionActions[f.id].action}`;
   });
 }
@@ -281,6 +292,7 @@ function poolEligible(state,p) {
   if (p.minAlert && state.alert<p.minAlert) return false;
   if (p.maxAlert && state.alert>p.maxAlert) return false;
   if (p.needOutbreak && !state.outbreaks.length) return false;
+  if (p.id==='pool_burn'&&getCourtPerception(state).perceivedInfected<2000) return false;
   return true;
 }
 function poolRegions(state,p) {
@@ -409,7 +421,7 @@ export function getSpreadContext(state,o,targetId,routeType,growth=getGrowthCont
   const target=regionStats(state,targetId);
   const flow=(r.mobility+target.mobility)/200;
   const stance={dormant:.75,spread:1.3,surge:1.1}[o.stance];
-  const armyBrake=state.alert>=40&&(r.type==='military'||target.type==='military') ? .55 : 1;
+  const armyBrake=state.factionActions?.army?.status==='封营查验'&&(r.type==='military'||target.type==='military') ? .55 : 1;
   const weight=routeType==='water'?1.2:1;
   const routeSkill=routeType==='water'?waterSkill:roadSkill;
   const directed=hasEffect(state,o,routeType==='water'?'follow_river':'follow_column',targetId)?1.8:1;
@@ -465,7 +477,7 @@ export function advanceTurn(state) {
         let leap=.035*d.spread*((r.mobility+target.mobility)/200);
         if(hasDiseaseSkill(state,d.id,'avian_wing_2')&&(r.type==='port'||target.type==='port'||r.tags?.includes('河网')||target.tags?.includes('河网'))) leap*=1.8;
         if(hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=1.65;
-        if(state.alert>=40&&!hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=.7;
+        if(state.factionActions?.army?.status==='封营查验'&&!hasDiseaseSkill(state,d.id,'avian_wing_3')) leap*=.7;
         if(hash(`bird|${state.seed}|${state.turn}|${o.id}|${targetId}`)<Math.min(.28,leap)) incoming.push({id:`${targetId}-${o.diseaseId}`,regionId:targetId,diseaseId:o.diseaseId,infected:1,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null,longJump:true,__from:r.id});
       }
     }
@@ -494,7 +506,7 @@ export function advanceTurn(state) {
   if (state.outbreaks.some(o=>o.regionId==='jing'&&o.infected>=10)) alertGain+=2;
   if (!fresh.length && !surged) alertGain-=1;
   state.alert=clamp(state.alert+Math.round(alertGain));
-  if (state.alert>=80&&!state.milestones.includes('national_order')) {state.milestones.push('national_order');state.scar+=4;notes.push('朝廷颁布全国戒疫诏令');}
+  if (state.alert>=80&&getCourtPerception(state).perceivedInfected>=1000&&!state.milestones.includes('national_order')) {state.milestones.push('national_order');state.scar+=4;notes.push('朝廷颁布全国戒疫诏令');}
   const kinds=new Set(state.outbreaks.map(o=>o.diseaseId)).size;
   if (kinds>=2&&!state.milestones.includes('two_diseases')) {state.milestones.push('two_diseases');state.scar+=4;}
   if (kinds>=3&&!state.milestones.includes('three_diseases')) {state.milestones.push('three_diseases');state.scar+=6;}

@@ -290,3 +290,32 @@ assert.equal(courtInformed.factionActions.emperor.status,'圣心震怒');
 assert.equal(courtBlind.outbreaks[0].infected,5000);
 factionTurn(suppressedReport);
 assert.equal(suppressedReport.factionActions.emperor.status,'圣心震怒');
+
+// v0.6：大疫先入危局，仍可驭疫、存读档；三旬内可升格，显著压制后可降级。
+const crisisGame=()=>{
+  const g=newGame('危局');g.seed=1;g.turn=8;g.drops=1;g.power=100;
+  g.outbreaks=regions.map(r=>({id:`${r.id}-cold_plague`,regionId:r.id,diseaseId:'cold_plague',infected:5000,stance:'spread',localAwareness:0,hideUntil:0,switchedTurn:-1,borrowedTurn:-1,borrowedEventId:null}));
+  return g;
+};
+const crisis=crisisGame();
+assert.equal(advanceTurn(crisis).turn,9);
+assert.equal(crisis.ending,undefined);
+assert.equal(crisis.crisis.candidate,'da_yi');
+assert.equal(crisis.crisis.remaining,3);
+assert.equal(changeStance(crisis,crisis.outbreaks[0].id,'surge'),'');
+globalThis.localStorage={getItem:key=>key===SAVE_KEY?JSON.stringify(crisis):null};
+assert.deepEqual(loadGame().crisis,crisis.crisis);
+delete globalThis.localStorage;
+crisis.regionDrift.jing={order:-80,governance:0};crisis.alert=95;
+advanceTurn(crisis);
+assert.equal(crisis.crisis.peakEnding,'yi_ding');
+advanceTurn(crisis);assert.equal(crisis.ending,undefined);
+assert.equal(advanceTurn(crisis),null);
+assert.equal(crisis.ending.id,'yi_ding');
+assert.equal(crisis.log[0].title,'危机终卷');
+const contained=crisisGame();advanceTurn(contained);
+contained.regionDrift.jing={order:-80,governance:0};contained.alert=95;advanceTurn(contained);
+contained.regionDrift.jing={order:0,governance:0};
+for(const o of contained.outbreaks){o.infected=1;o.localAwareness=0;}
+advanceTurn(contained);advanceTurn(contained);
+assert.equal(contained.ending.id,'da_yi');

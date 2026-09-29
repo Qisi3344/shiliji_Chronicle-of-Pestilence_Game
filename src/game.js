@@ -160,7 +160,7 @@ export const macroRegionStats = (state, macroId) => {
   return {population,infected,activeDiseases,outbreakCount:outbreaks.length,infectedNodeCount:infectedNodes,alertLevel,order:weighted('order'),governance:weighted('governance'),disaster:weighted('disaster'),severity};
 };
 export function newGame(name='长夜') {
-  return { version:SAVE_SCHEMA_VERSION, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, activeEffects:[], abilityCooldowns:{}, intel:Object.fromEntries(regions.map(r=>[r.id,emptyIntel()])), log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
+  return { version:SAVE_SCHEMA_VERSION, name:name.trim().slice(0,12)||'长夜', seed:Math.floor(Math.random()*2**31), turn:0, dayInTurn:0, timeSpeed:1, paused:false, power:0, scar:0, alert:0, drops:0, outbreaks:[], seenRegions:[], seenProvinces:[], milestones:[], diseaseXP:{}, diseaseSkills:{}, diseaseBranches:{}, activeEffects:[], abilityCooldowns:{}, crisis:null, intel:Object.fromEntries(regions.map(r=>[r.id,emptyIntel()])), log:events.filter(e=>e.turn===0).map(e=>({turn:0,category:e.category,title:e.title,text:e.text,effect:e.effect,regionIds:e.regionIds})), lastReport:null, firstDisease:null, completedTutorial:false, factionActions: Object.fromEntries(factions.map(f=>[f.id,{status:'如常',action:'朝局未动。',impact:'尚无直接影响'}])), birdHops:[] };
 }
 export function canDrop(state, regionId, diseaseId) {
   const d=disease(diseaseId);
@@ -227,11 +227,13 @@ export function abilityTargets(state,o,ability) {
   return edges.filter(edge=>edge.includes(o.regionId)).map(edge=>edge.find(id=>id!==o.regionId)).filter(id=>!state.outbreaks.some(x=>x.regionId===id&&x.diseaseId===o.diseaseId));
 }
 export function canUseAbility(state,outbreakId,abilityId,targetId) {
+  if(state.ending)return '此世已终';
   const o=state.outbreaks.find(x=>x.id===outbreakId), ability=activeAbilities.find(a=>a.id===abilityId);
   if(!o||!ability||abilityForOutbreak(state,o)?.id!==abilityId)return '尚未掌握此行动';
   if((state.abilityCooldowns?.[abilityId]||0)>state.turn)return '此行动尚在冷却';
   if(state.power<ability.cost)return `疫势不足，需 ${ability.cost}`;
   const r=regionStats(state,o.regionId);
+  if(!ability.route&&targetId)return '此行动无需选择目标';
   if(ability.route&&!abilityTargets(state,o,ability).includes(targetId))return '请选择可抵达的未染疫邻地';
   if(abilityId==='follow_column'&&!activeEvents(state,o.regionId).some(e=>['population','military'].includes(e.category)))return '此地本旬没有迁徙人流';
   if(abilityId==='close_streets'&&r.population<40)return '需要人口较多的疫区';
@@ -265,9 +267,9 @@ export function getCourtPerception(state) {
 }
 export function factionTurn(state) {
   const perception=getCourtPerception(state),intel=state.intel;
-  const capital=perception.capitalKnown,emperorAlarm=capital||perception.perceivedInfected>=1500||perception.knownSickRegions>=4;
+  const capital=perception.capitalKnown,emperorAlarm=capital||perception.perceivedInfected>=(state.crisis?500:1500)||perception.knownSickRegions>=4;
   const chancellorAlarm=perception.perceivedInfected>=500||perception.knownSickRegions>=3;
-  const armyAlarm=regions.some(r=>['military','port'].includes(r.type)&&intel[r.id].centralKnownInfected>=20);
+  const armyAlarm=regions.some(r=>['military','port'].includes(r.type)&&intel[r.id].centralKnownInfected>=(state.crisis?1:20));
   const princeAlarm=state.turn>=3&&regions.some(r=>intel[r.id].reportedInfected>=30||regionStats(state,r.id).disaster>=85);
   const gentryAlarm=['lin_he','qing_xi'].some(id=>intel[id].reportedInfected>=50||regionStats(state,id).order<45);
   const peopleAlarm=state.outbreaks.some(o=>o.localAwareness>=40)||activeEvents(state).some(e=>e.id==='rumor');
@@ -311,12 +313,13 @@ function poolRegions(state,p) {
 function firePoolEvents(state,notes) {
   state.poolEvents=(state.poolEvents||[]).filter(i=>i.turn+i.duration>state.turn);
   if (state.turn<9 || state.poolEvents.length>=3) return;
-  if (hash(`poolgo|${state.seed}|${state.turn+1}`)>=.6) return;
+  if (hash(`poolgo|${state.seed}|${state.turn+1}`)>=(state.crisis?.remaining>0 ? .85 : .6)) return;
   const eligible=poolEvents.filter(p=>poolEligible(state,p));
   if (!eligible.length) return;
-  const total=eligible.reduce((n,p)=>n+(p.weight||1),0);
+  const weight=p=>(p.weight||1)*(state.crisis&&['pool_riot','pool_close','pool_burn'].includes(p.id)?3:1);
+  const total=eligible.reduce((n,p)=>n+weight(p),0);
   let roll=hash(`pool|${state.seed}|${state.turn+1}`)*total, picked=eligible[eligible.length-1];
-  for (const p of eligible) {roll-=p.weight||1;if(roll<=0){picked=p;break;}}
+  for (const p of eligible) {roll-=weight(p);if(roll<=0){picked=p;break;}}
   const cands=poolRegions(state,picked), chosen=[];
   for (let i=0;i<picked.count&&cands.length;i++) {
     const r=hash(`poolr|${state.seed}|${state.turn+1}|${picked.id}|${i}`);
@@ -342,6 +345,28 @@ function detectEnding(state) {
   const macros=new Set(state.outbreaks.map(o=>macroRegions.find(m=>m.memberIds.includes(o.regionId))?.id).filter(Boolean));
   if (totalInfected>=totalPop*.06||(state.turn>=8&&sickRegions.length>=18&&macros.size>=5&&totalInfected>=totalPop*.01)) return {id:'da_yi'};
   return null;
+}
+const endingRank={da_yi:1,shi_guo:2,yi_ding:3};
+const endingNames={da_yi:'大疫',shi_guo:'蚀国',yi_ding:'易鼎'};
+function progressCrisis(state,candidate) {
+  const infected=state.outbreaks.reduce((n,o)=>n+o.infected,0);
+  if(!state.crisis) {
+    if(!candidate)return null;
+    state.crisis={candidate:candidate.id,enteredTurn:state.turn,remaining:3,peakEnding:candidate.id,peakInfected:infected};
+    state.lastReport.headlines.unshift('天下入危局，尚有三旬可行事');
+    state.log.unshift({turn:state.turn,category:'epidemic',title:'天下危局',text:'胜局条件已现，王朝尚有三旬应对；疫仍可行动。',effect:`候定：${endingNames[candidate.id]} · 余三旬`,regionIds:[]});
+    return null;
+  }
+  const crisis=state.crisis;
+  if(candidate&&endingRank[candidate.id]>endingRank[crisis.peakEnding])crisis.peakEnding=candidate.id;
+  crisis.peakInfected=Math.max(crisis.peakInfected,infected);
+  crisis.remaining--;
+  if(crisis.remaining>0){state.lastReport.headlines.unshift(`危局未定 · 余${crisis.remaining}旬`);return null;}
+  const peakRank=endingRank[crisis.peakEnding],currentRank=endingRank[candidate?.id]||1;
+  const finalRank=infected<crisis.peakInfected*.55?Math.min(peakRank,currentRank):peakRank;
+  const id=Object.keys(endingRank).find(key=>endingRank[key]===finalRank);
+  state.log.unshift({turn:state.turn,category:'epidemic',title:'危机终卷',text:'三旬危局已定，史官收卷。',effect:`终局：${endingNames[id]}`,regionIds:[]});
+  return {id};
 }
 export function getGrowthContext(state,o) {
   const r=regionStats(state,o.regionId), d=disease(o.diseaseId), active=activeEvents(state,o.regionId);
@@ -520,7 +545,9 @@ export function advanceTurn(state) {
   state.log.unshift({turn:state.turn,category:'epidemic',title:'旬末疫报',text:notes.slice(0,3).join('；')+'。',effect:`新染疫 ${fresh.length} 地 · 疫势 ${state.lastReport.power>=0?'+':''}${state.lastReport.power} · 疫痕 +${state.lastReport.scar} · 朝警 ${state.lastReport.alert>=0?'+':''}${state.lastReport.alert}`,regionIds:fresh.map(o=>o.regionId)});
   state.log=state.log.slice(0,120);
   const ending=detectEnding(state);
-  if (ending) {state.ending={...ending,turn:state.turn};return null;}
+  if (ending?.id==='yi_mie') {state.ending={...ending,turn:state.turn};return null;}
+  const final=progressCrisis(state,ending);
+  if (final) {state.ending={...final,turn:state.turn};return null;}
   return state.lastReport;
 }
 export function advanceDay(state) {
@@ -536,6 +563,6 @@ export function setTimeSpeed(state,speed) {
   if ([1,2,4].includes(Number(speed))) { state.timeSpeed=Number(speed); state.paused=false; }
 }
 export function loadGame() {
-  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; s.activeEffects??=[]; s.abilityCooldowns??={}; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
+  try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; s.activeEffects??=[]; s.abilityCooldowns??={}; s.crisis??=null; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
 }
 export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }

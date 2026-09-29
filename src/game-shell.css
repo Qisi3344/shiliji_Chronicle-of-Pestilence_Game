@@ -122,7 +122,7 @@ kbd{font:11px 'Noto Sans SC',sans-serif;border:1px solid #b8a77e44;border-radius
 .news-body p{font-size:16px;max-width:42em;margin:16px 0;color:#c3c0ab}
 .news-body .eyebrow,.time-mark{font-size:12px;color:#a0a28f}
 .impact{background:#8593720b;border-color:#95a07c3b;color:#bec3ac;font-size:14px}
-.turn-brief{inset:auto 24px 24px auto;width:340px;max-width:calc(100vw - 48px);padding:20px 38px 18px 20px;background:#171f1bf5;border:1px solid #ac97654d;box-shadow:0 8px 30px #0005}
+.turn-brief{display:block;inset:auto 24px 24px auto;width:340px;max-width:calc(100vw - 48px);padding:20px 38px 18px 20px;background:#171f1bf5;border:1px solid #ac97654d;box-shadow:0 8px 30px #0005}
 .turn-brief strong{display:block;font-size:17px;margin:7px 0 0}
 .turn-brief p{font-size:13px;margin:8px 0 12px}
 .turn-brief .brief-news{display:inline-flex;align-items:center;min-height:36px;margin-top:10px;padding:4px 0;color:#c99372;font-size:12px}

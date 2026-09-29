@@ -1,6 +1,7 @@
 import { diseaseSkills, diseases, events, factions, macroRegions, poolEvents, regions, roads, waterways } from './data.js';
 
 export const SAVE_KEY = 'yi-save-v01';
+export const HISTORY_KEY = 'yi-history-v01';
 export const SAVE_SCHEMA_VERSION = 2;
 export const activeAbilities = [
   {id:'follow_column',diseaseId:'cold_plague',skill:'cold_roads_1',name:'逐队',cost:3,route:'road',text:'选定官道，本旬追随迁徙人流。'},
@@ -565,4 +566,40 @@ export function setTimeSpeed(state,speed) {
 export function loadGame() {
   try { const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(!([1,SAVE_SCHEMA_VERSION].includes(s?.version)&&Array.isArray(s.outbreaks))) return null; ensureEvolution(s); ensureClock(s); s.birdHops??=[]; s.seed??=20260922; s.poolEvents??=[]; s.regionDrift??={}; s.activeEffects??=[]; s.abilityCooldowns??={}; s.crisis??=null; ensureIntel(s); s.version=SAVE_SCHEMA_VERSION; const provinceNames={北境:'朔北',河东州:'河东郡',临河州:'临津州',南河州:'洛南'};s.seenProvinces=[...new Set((s.seenProvinces||[]).map(name=>provinceNames[name]||name))];return s; } catch { return null; }
 }
-export function saveGame(state) { localStorage.setItem(SAVE_KEY,JSON.stringify(state)); }
+const historyId=state=>`${state.seed||0}:${state.ending?.id||'unknown'}:${state.ending?.turn||state.turn||0}`;
+export function buildHistoryEntry(state,completedAt=Date.now()){
+  if(!state?.ending)return null;
+  const usedIds=[...new Set([state.firstDisease,...Object.keys(state.diseaseXP||{}),...(state.outbreaks||[]).map(o=>o.diseaseId)].filter(Boolean))];
+  const infected=(state.outbreaks||[]).reduce((n,o)=>n+Number(o.infected||0),0);
+  const regionsHit=new Set(state.seenRegions?.length?state.seenRegions:(state.outbreaks||[]).map(o=>o.regionId)).size;
+  return {
+    version:1,id:historyId(state),name:state.name||'无名',seed:state.seed||0,completedAt,
+    endingId:state.ending.id,turn:state.turn||state.ending.turn||0,scar:state.scar||0,alert:state.alert||0,
+    infected,regionsHit,firstDisease:state.firstDisease||null,
+    diseases:usedIds.map(id=>{
+      const d=disease(id),active=(state.outbreaks||[]).filter(o=>o.diseaseId===id);
+      return {id,name:d?.name||id,glyph:d?.glyph||'疫',xp:state.diseaseXP?.[id]||0,branch:state.diseaseBranches?.[id]||null,infected:active.reduce((n,o)=>n+Number(o.infected||0),0),activeRegions:new Set(active.map(o=>o.regionId)).size};
+    }),
+    records:(state.log||[]).slice(0,8).map(e=>({turn:e.turn||0,category:e.category||'epidemic',title:e.title||'',text:e.text||'',effect:e.effect||'',regionIds:[...(e.regionIds||[])]}))
+  };
+}
+export function loadHistory(){
+  try {
+    const raw=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+    if(!Array.isArray(raw))return[];
+    return raw.filter(x=>x&&x.id&&x.endingId).sort((a,b)=>(b.completedAt||0)-(a.completedAt||0)).slice(0,50);
+  } catch { return []; }
+}
+export function archiveFinishedGame(state){
+  const entry=buildHistoryEntry(state);if(!entry)return null;
+  const history=loadHistory(),index=history.findIndex(x=>x.id===entry.id);
+  if(index>=0){entry.completedAt=history[index].completedAt||entry.completedAt;history[index]=entry;}
+  else history.unshift(entry);
+  history.sort((a,b)=>(b.completedAt||0)-(a.completedAt||0));
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));
+  return entry;
+}
+export function saveGame(state) {
+  localStorage.setItem(SAVE_KEY,JSON.stringify(state));
+  if(state?.ending) archiveFinishedGame(state);
+}
